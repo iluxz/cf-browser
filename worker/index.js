@@ -27,7 +27,7 @@ function parseSettings(params) {
     max,
     chat: params.get('chat') !== '0',
     cursors: params.get('cursors') !== '0',
-    nav: params.get('nav') === 'host' ? 'host' : 'all',
+    nav: (function (r) { return r === 'off' ? 'off' : (r === 'host' ? 'host' : 'all'); })(params.get('nav')),
   };
 }
 
@@ -150,6 +150,7 @@ export class Room {
 
       switch (msg.type) {
         case 'navigate':
+          if (settings.nav === 'off') return;
           if (settings.nav === 'host' && !isHost) return;
           this.currentUrl = msg.url;
           this.state.storage.put('url', msg.url).catch(() => {});
@@ -175,6 +176,19 @@ export class Room {
             x: Math.max(0, Math.min(1, Number(msg.x) || 0)),
             y: Math.max(0, Math.min(1, Number(msg.y) || 0)),
           }, ws);
+          break;
+        case 'click':
+          if (!settings.cursors) return;
+          this.broadcast({
+            type: 'click',
+            id,
+            x: Math.max(0, Math.min(1, Number(msg.x) || 0)),
+            y: Math.max(0, Math.min(1, Number(msg.y) || 0)),
+          }, ws);
+          break;
+        case 'scroll':
+          if (settings.nav === 'off') return;
+          this.broadcast({ type: 'scroll', id, y: Math.max(0, Math.min(1, Number(msg.y) || 0)) }, ws);
           break;
         case 'ping':
           try { ws.send(JSON.stringify({ type: 'pong' })); } catch {}

@@ -150,6 +150,8 @@
   .mp-peer { width: 20px; height: 20px; border-radius: 50%; background: #7c5cff; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
   .mp-chat { position: fixed; bottom: 24px; right: 12px; width: 280px; max-height: 300px; background: #16162a; border: 1px solid #3a3a5e; border-radius: 12px; display: none; flex-direction: column; z-index: 50; }
   .mp-chat.open { display: flex; }
+  .mp-chat-header { cursor: move; user-select: none; }
+  .mp-chat.open { display: flex; }
   .mp-chat-header { padding: 8px 12px; border-bottom: 1px solid #2a2a3e; font-size: 12px; color: #7c5cff; display: flex; justify-content: space-between; align-items: center; }
   .mp-chat-header .close { cursor: pointer; color: #666; }
   .mp-chat-header .close:hover { color: #ff5a8a; }
@@ -172,6 +174,8 @@
   .mp-cursor.live { opacity: 1; }
   .mp-cursor svg { display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,.55)); }
   .mp-cursor-label { position: absolute; left: 13px; top: 17px; font-size: 10px; font-weight: 700; color: #0b0b12; padding: 1px 6px; border-radius: 999px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+  .mp-click-ring { position: absolute; transform: translate(-50%, -50%); width: 14px; height: 14px; border-radius: 50%; border: 2px solid #ffd700; box-shadow: 0 0 10px rgba(255,215,0,.7); animation: mpClickRipple .65s ease-out forwards; }
+  @keyframes mpClickRipple { 0% { transform: translate(-50%,-50%) scale(0.6); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(3.2); opacity: 0; } }
   .mp-chat { width: 310px; max-height: 380px; }
   .mp-chat.open { display: flex; }
   .mp-chat-messages { max-height: 280px; font-size: 12px; }
@@ -223,6 +227,89 @@
   .find-bar button { padding: 4px 8px; border-radius: 4px; border: none; background: rgba(255,255,255,0.1); color: #aaa; cursor: pointer; font-size: 11px; }
   .find-bar button:hover { background: rgba(255,255,255,0.2); color: #fff; }
   .find-count { font-size: 11px; color: #666; min-width: 40px; text-align: center; }
+
+  /* ===== INTERNAL cfb:: PAGES ===== */
+  .cfb-page {
+    height: 100%; overflow: auto; background: #14141f; color: #e0e0e0;
+    padding: 26px 32px; font-size: 13px; box-sizing: border-box;
+  }
+  .cfb-page h1 { font-size: 19px; font-weight: 600; color: #fff; margin-bottom: 14px; }
+  .cfb-page .empty { color: #6a6a88; }
+  .cfb-page .item {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 10px 4px; border-bottom: 1px solid #23233a;
+  }
+  .cfb-page .item .title { color: #d8d8ea; }
+  .cfb-page .item .url { color: #666; font-size: 11px; word-break: break-all; }
+  .cfb-page .item button {
+    background: #7c5cff; color: #fff; border: none; border-radius: 6px;
+    padding: 5px 12px; font-size: 11px; cursor: pointer; flex: 0 0 auto;
+  }
+  .cfb-page .item button:hover { background: #6a4bef; }
+  .cfb-page .about {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; gap: 4px; text-align: center;
+  }
+  .cfb-page .about .logo { font-size: 54px; margin-bottom: 8px; }
+  .cfb-page .about h1 { margin: 0; }
+  .cfb-page .about p { color: #888; }
+
+  /* ===== WORDLE (cfb::wordle) ===== */
+  .wd {
+    display: flex; flex-direction: column; align-items: center; gap: 13px;
+    user-select: none; padding-top: 4px;
+  }
+  .wd h1 { margin: 0; letter-spacing: 3px; text-transform: uppercase; font-size: 17px; }
+  .wd-sub { color: #6a6a88; font-size: 11px; margin-top: -8px; }
+  .wd-grid { display: grid; gap: 6px; }
+  .wd-row { display: grid; grid-template-columns: repeat(5, 54px); gap: 6px; }
+  .wd-tile {
+    height: 54px; display: flex; align-items: center; justify-content: center;
+    border: 2px solid #2e2e48; background: #12121c; color: #fff;
+    font-size: 25px; font-weight: 700; text-transform: uppercase; border-radius: 4px;
+  }
+  .wd-tile.filled { border-color: #55557a; }
+  .wd-tile.correct { background: #3a9b5c; border-color: #3a9b5c; }
+  .wd-tile.present { background: #b39321; border-color: #b39321; }
+  .wd-tile.absent { background: #2a2a3c; border-color: #2a2a3c; color: #9a9ab0; }
+  .wd-tile.flip { animation: wdflip .36s ease; }
+  @keyframes wdflip {
+    0% { transform: rotateX(0deg); }
+    50% { transform: rotateX(88deg); }
+    100% { transform: rotateX(0deg); }
+  }
+  .wd-row.shake { animation: wdshake .4s; }
+  @keyframes wdshake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(7px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .wd-msg { height: 16px; font-size: 12px; color: #9a9ab0; text-align: center; }
+  .wd-msg.good { color: #56d18a; }
+  .wd-msg.bad { color: #e2685f; }
+  .wd-kb { display: flex; flex-direction: column; gap: 6px; }
+  .wd-kbrow { display: flex; gap: 5px; justify-content: center; }
+  .wd-key {
+    min-width: 31px; height: 38px; padding: 0 7px; border-radius: 5px; border: none;
+    background: #3a3a55; color: #eee; font-size: 12px; font-weight: 600;
+    cursor: pointer; text-transform: uppercase; font-family: inherit;
+  }
+  .wd-key:hover { background: #4a4a6a; }
+  .wd-key.wide { min-width: 52px; font-size: 10px; letter-spacing: .5px; }
+  .wd-key.correct { background: #3a9b5c; }
+  .wd-key.present { background: #b39321; }
+  .wd-key.absent { background: #242432; color: #5e5e74; }
+  .wd-foot { display: flex; gap: 8px; align-items: center; }
+  .wd-foot button, .wd-foot select {
+    background: transparent; border: 1px solid #34344c; color: #9a9ab0;
+    border-radius: 6px; padding: 6px 12px; font-size: 11px; cursor: pointer;
+    font-family: inherit;
+  }
+  .wd-foot button:hover { border-color: #7c5cff; color: #fff; }
+  .wd-foot select { background: #1a1a2e; }
+  .wd-stats { font-size: 11px; color: #6a6a88; }
 </style>
 </head>
 <body>
@@ -258,6 +345,8 @@
   <button class="mp-btn" onclick="mpHost()">Host Room</button>
   <button class="mp-btn" onclick="mpJoin()">Join Room</button>
   <button class="mp-btn" id="mpChatBtn" onclick="mpToggleChat()" style="display:none">Chat</button>
+  <button class="mp-btn" id="mpFollowBtn" onclick="mpToggleFollow()" style="display:none">Follow: on</button>
+  <button class="mp-btn" id="mpCursorsBtn" onclick="mpToggleCursors()" style="display:none">Cursors: on</button>
   <button class="mp-btn" id="mpLeaveBtn" onclick="mpLeave()" style="display:none">Leave</button>
 </div>
 <div class="mp-chat" id="mpChat">
@@ -277,6 +366,7 @@
 
 <div class="statusbar" id="statusbar">Ready</div>
 
+<script src="wordle-words.js"></script>
 <script>
 const PROXY = '/api/proxy?url=';
 
@@ -285,12 +375,12 @@ let activeTab = null;
 let tabCounter = 0;
 
 const SHORTCUTS = [
-  { icon: '🔍', label: 'Google', url: 'https://www.google.com' },
-  { icon: '📺', label: 'YouTube', url: 'https://www.youtube.com' },
-  { icon: '📰', label: 'Hacker News', url: 'https://news.ycombinator.com' },
-  { icon: '🐙', label: 'GitHub', url: 'https://github.com' },
+  { icon: '🟩', label: 'Wordle', cfb: 'wordle' },
   { icon: '📖', label: 'Wikipedia', url: 'https://en.wikipedia.org' },
-  { icon: '🎮', label: 'Reddit', url: 'https://www.reddit.com' },
+  { icon: '🐙', label: 'GitHub', url: 'https://github.com' },
+  { icon: '🔍', label: 'DuckDuckGo', url: 'https://duckduckgo.com' },
+  { icon: '🧪', label: 'Lobsters', url: 'https://lobste.rs' },
+  { icon: '🎮', label: 'itch.io', url: 'https://itch.io' },
 ];
 
 function newTab(url) {
@@ -473,9 +563,12 @@ function showNewTab(tab) {
   tab.loading = false;
   tab.title = 'New Tab';
   clearProxyHint();
-  view.innerHTML = '<div class="newtab"><h1>CF Browser</h1><p>Enter a URL or click a shortcut</p><div class="shortcuts">' +
-    SHORTCUTS.map(s => `<div class="shortcut" onclick="navigateTo('${s.url}')"><div class="icon">${s.icon}</div><div class="label">${s.label}</div></div>`).join('') +
-    '</div></div>';
+  const tiles = SHORTCUTS.map(s => {
+    const action = s.cfb ? "openCfb('" + s.cfb + "')" : "navigateTo('" + s.url + "')";
+    return '<div class="shortcut" onclick="' + action + '"><div class="icon">' + s.icon + '</div><div class="label">' + s.label + '</div></div>';
+  }).join('');
+  view.innerHTML = '<div class="newtab"><h1>CF Browser</h1><p>enter a url, or type <b>wordle</b></p><div class="shortcuts">' +
+    tiles + '</div></div>';
   renderTabs();
   updateAddrBar();
   setStatusText('New Tab');
@@ -547,8 +640,31 @@ function loadIntoFrame(tab, url) {
   }, 15000);
 }
 
+function cfbPageFrom(url) {
+  const s = String(url || '').trim();
+  const m = s.match(/^cf(?:b)?(?:::|:\/\/|:)\s*\/?\s*([a-z0-9_-]+)/i);
+  return m ? m[1].toLowerCase() : null;
+}
+
 function loadUrl(tab, url) {
   if (!url) return;
+
+  // internal cfb:: pages never go through the proxy
+  const cfbPage = cfbPageFrom(url);
+  if (cfbPage) {
+    tab.url = url;
+    tab.title = 'cfb::' + cfbPage;
+    if (tab.histIdx < tab.history.length - 1) tab.history = tab.history.slice(0, tab.histIdx + 1);
+    tab.history.push(tab.url);
+    tab.histIdx = tab.history.length - 1;
+    renderTabs();
+    updateNavButtons();
+    updateAddrBar();
+    updateStarBtn();
+    showCfbPage(tab, cfbPage);
+    return;
+  }
+
   // Normalize URL
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     if (url.includes('.') && !url.includes(' ')) {
@@ -601,6 +717,23 @@ window.addEventListener('message', (e) => {
     return;
   }
 
+  if (data.type === 'click') {
+    const frame = tab.frame;
+    if (!frame || !frame.isConnected) return;
+    const r = frame.getBoundingClientRect();
+    const x = (r.left + data.x * r.width) / Math.max(1, window.innerWidth);
+    const y = (r.top + data.y * r.height) / Math.max(1, window.innerHeight);
+    mpSendClick(x, y);
+    return;
+  }
+
+  if (data.type === 'scroll') {
+    const frame = tab.frame;
+    if (!frame || !frame.isConnected) return;
+    mpSendScroll(data.y);
+    return;
+  }
+
   if (data.type === 'pageerror') {
     const frame = tab.frame;
     if (!frame || !frame.isConnected) return;
@@ -620,17 +753,9 @@ document.addEventListener('click', (e) => {
 
 function navigate() {
   const input = document.getElementById('addrInput');
-  const url = input.value.trim();
+  let url = input.value.trim();
   if (!url || !activeTab) return;
-  if (url.toLowerCase().startsWith('cfb::') || url.toLowerCase().startsWith('cfb://')) {
-    const page = url.toLowerCase().replace(/^cfb::?\/?/, '').trim();
-    showCfbPage(activeTab, page);
-    activeTab.url = url;
-    activeTab.title = 'cfb::' + page;
-    renderTabs();
-    updateAddrBar();
-    return;
-  }
+  if (url.toLowerCase() === 'wordle') url = 'cfb::wordle';
   loadUrl(activeTab, url);
 }
 
@@ -639,8 +764,21 @@ function showCfbPage(tab, page) {
   let html = '';
   switch (page) {
     case 'settings':
-      openSettings();
-      return;
+      html = '<div class="cfb-page"><h1>Settings</h1>' +
+        '<div class="item"><div><div class="title">Homepage</div><div class="url">used by the Home button</div></div>' +
+        '<input id="setHome" type="text" value="' + escapeHtml(localStorage.getItem('cfb_homepage') || 'https://www.google.com') +
+        '" style="width:230px;padding:6px 8px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;"></div>' +
+        '<div style="margin-top:14px;display:flex;gap:8px;">' +
+        '<button onclick="cfbSetHome()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">Save</button>' +
+        '<button onclick="if(confirm(\'clear all browser data?\')){localStorage.clear();location.reload();}" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">Reset all data</button>' +
+        '</div></div>';
+      break;
+    case 'cookies':
+      html = '<div class="cfb-page"><h1>Cookies</h1>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:14px;">cookies stored by the browser shell (proxied sites keep their own)</p>' +
+        '<div class="item"><div class="title" style="word-break:break-all;">' + escapeHtml(document.cookie || '(none)') + '</div></div>' +
+        '</div>';
+      break;
     case 'bookmarks':
       html = '<div class="cfb-page"><h1>Bookmarks</h1>';
       if (bookmarks.length === 0) html += '<div class="empty">No bookmarks yet.</div>';
@@ -658,21 +796,30 @@ function showCfbPage(tab, page) {
       });
       html += '</div>';
       break;
-    case 'cookies':
-      openCookieManager();
-      return;
+    case 'wordle':
+      html = wdlPage();
+      break;
     case 'about':
-      html = '<div class="cfb-page"><div class="about"><div class="logo">🌐</div><h1>CF Browser</h1><p>Version 1.0</p><p>Powered by Cloudflare Pages + Workers</p><p style="margin-top:16px;color:#555;font-size:11px;">cfb::settings · cfb::bookmarks · cfb::history · cfb::cookies · cfb::about</p></div></div>';
+html = '<div class="cfb-page"><div class="about"><div class="logo">🌐</div><h1>CF Browser</h1><p>Version 1.0</p><p>Powered by Cloudflare Pages + Workers</p><p style="margin-top:16px;color:#555;font-size:11px;">' +
+      ['settings','bookmarks','history','cookies','wordle','about'].map(p =>
+        '<span style="cursor:pointer;color:#7c5cff;" onclick="openCfb(\'' + p + '\')">' + p + '</span>').join(' · ') +
+      '</p></div></div>';
       break;
     default:
-      html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, about</p></div>';
+      html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, wordle, about</p></div>';
   }
   const view = tabView(tab);
   view.innerHTML = html;
+  if (page === 'wordle') wdlInit();
   tab.frame = null;
   tab.loading = false;
   clearProxyHint();
   setStatusText('cfb::' + page);
+}
+
+function openCfb(page) {
+  if (!activeTab) newTab();
+  loadUrl(activeTab, 'cfb::' + page);
 }
 
 function escapeHtml(text) {
@@ -680,6 +827,383 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
+// ===== WORDLE =====
+// nyt wordle is a client-side app behind a bot wall, so a proxy can only ever hand
+// back an empty shell. this is a native one instead: no network, no proxy, always works.
+const WDL_DAILY_KEY = 'cfb_wordle_daily';
+const WDL_STATS_KEY = 'cfb_wordle_stats';
+const WDL_MODE_KEY = 'cfb_wordle_mode';
+const WDL_FALLBACK = 'about other which their there first would these state email world music after video where books links years';
+
+let WDL_DATA = null;
+function wdlData() {
+  if (WDL_DATA) return WDL_DATA;
+  const raw = window.WORDLE_WORDS;
+  const answers = raw && raw.answers ? raw.answers.split(' ') : WDL_FALLBACK.split(' ');
+  const valid = new Set(raw && raw.valid ? raw.valid.split(' ') : answers);
+  WDL_DATA = { answers, valid };
+  return WDL_DATA;
+}
+
+let wdl = null;
+let wdlBusy = false;
+
+function wdlDayNum() {
+  const d = new Date();
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+}
+
+function wdlDailyAnswer(dayNum) {
+  const answers = wdlData().answers;
+  // every step has to be forced back into unsigned territory: bitwise ops in js
+  // return signed int32, so a negative hash would index off the end of the array
+  let x = (dayNum * 2654435761) >>> 0;
+  x = (x ^ (x >>> 15)) >>> 0;
+  x = Math.imul(x, 2246822519) >>> 0;
+  x = (x ^ (x >>> 13)) >>> 0;
+  return answers[x % answers.length] || answers[0];
+}
+
+function wdlLoadDaily() {
+  try { return JSON.parse(localStorage.getItem(WDL_DAILY_KEY) || 'null'); } catch { return null; }
+}
+
+function wdlSave() {
+  if (!wdl || wdl.mode !== 'daily') return;
+  try {
+    localStorage.setItem(WDL_DAILY_KEY, JSON.stringify({
+      day: wdl.day, answer: wdl.answer, guesses: wdl.guesses, done: wdl.done,
+    }));
+  } catch {}
+}
+
+function wdlGetStats() {
+  try {
+    const s = JSON.parse(localStorage.getItem(WDL_STATS_KEY) || 'null');
+    if (s && Array.isArray(s.dist)) return s;
+  } catch {}
+  return { played: 0, wins: 0, streak: 0, max: 0, dist: [0, 0, 0, 0, 0, 0] };
+}
+
+function wdlRecord(won) {
+  if (!wdl || wdl.mode !== 'daily' || wdl.scored) return;
+  wdl.scored = true;
+  const s = wdlGetStats();
+  s.played++;
+  if (won) {
+    s.wins++;
+    s.streak++;
+    s.max = Math.max(s.max, s.streak);
+    s.dist[Math.min(5, wdl.guesses.length - 1)]++;
+  } else {
+    s.streak = 0;
+  }
+  try { localStorage.setItem(WDL_STATS_KEY, JSON.stringify(s)); } catch {}
+}
+
+function wdlScore(guess, answer) {
+  const res = ['absent', 'absent', 'absent', 'absent', 'absent'];
+  const pool = answer.split('');
+  for (let i = 0; i < 5; i++) {
+    if (guess[i] === pool[i]) { res[i] = 'correct'; pool[i] = ''; }
+  }
+  for (let i = 0; i < 5; i++) {
+    if (res[i] === 'correct') continue;
+    const j = pool.indexOf(guess[i]);
+    if (j > -1) { res[i] = 'present'; pool[j] = ''; }
+  }
+  return res;
+}
+
+function wdlPage() {
+  const rows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+  let kb = '';
+  rows.forEach((row, ri) => {
+    let keys = '';
+    if (ri === 2) keys += '<button class="wd-key wide" data-key="enter">enter</button>';
+    for (const ch of row) keys += '<button class="wd-key" data-key="' + ch + '">' + ch + '</button>';
+    if (ri === 2) keys += '<button class="wd-key wide" data-key="back">del</button>';
+    kb += '<div class="wd-kbrow">' + keys + '</div>';
+  });
+
+  let grid = '';
+  for (let r = 0; r < 6; r++) {
+    grid += '<div class="wd-row" id="wdRow' + r + '">';
+    for (let c = 0; c < 5; c++) grid += '<div class="wd-tile" id="wdTile' + r + '-' + c + '"></div>';
+    grid += '</div>';
+  }
+
+  return '<div class="cfb-page wd">' +
+    '<h1>Wordle</h1>' +
+    '<div class="wd-sub">guess the 5 letter word in 6 tries</div>' +
+    '<div class="wd-grid" id="wdGrid">' + grid + '</div>' +
+    '<div class="wd-msg" id="wdMsg"></div>' +
+    '<div class="wd-kb" id="wdKb">' + kb + '</div>' +
+    '<div class="wd-foot">' +
+      '<select id="wdMode"><option value="daily">daily</option><option value="practice">practice</option></select>' +
+      '<button onclick="wdlNewWord()">new word</button>' +
+      '<button onclick="wdlShare()">share</button>' +
+    '</div>' +
+    '<div class="wd-stats" id="wdStats"></div>' +
+    '</div>';
+}
+
+function wdlInit() {
+  let mode = 'daily';
+  try { mode = localStorage.getItem(WDL_MODE_KEY) || 'daily'; } catch {}
+  const answers = wdlData().answers;
+  const day = wdlDayNum();
+
+  if (mode !== 'practice') {
+    const saved = wdlLoadDaily();
+    if (saved && saved.day === day && Array.isArray(saved.guesses)) {
+      wdl = {
+        mode: 'daily', day,
+        answer: saved.answer || wdlDailyAnswer(day),
+        guesses: saved.guesses.slice(0, 6),
+        current: '', done: !!saved.done, msg: '', msgKind: '',
+      };
+    } else {
+      wdl = { mode: 'daily', day, answer: wdlDailyAnswer(day), guesses: [], current: '', done: false, msg: '', msgKind: '' };
+      wdlSave();
+    }
+  } else {
+    wdl = {
+      mode: 'practice', day,
+      answer: answers[Math.floor(Math.random() * answers.length)],
+      guesses: [], current: '', done: false, msg: '', msgKind: '',
+    };
+  }
+
+  wdlBusy = false;
+  if (wdl.done && wdl.guesses.length) {
+    const won = wdl.guesses[wdl.guesses.length - 1] === wdl.answer;
+    wdl.msg = won ? 'you already got this one in ' + wdl.guesses.length : 'the word was ' + wdl.answer.toUpperCase();
+    wdl.msgKind = won ? 'good' : 'bad';
+  }
+  wdlRender();
+}
+
+function wdlRender() {
+  if (!wdl) return;
+  const grid = document.getElementById('wdGrid');
+  if (!grid) return;
+
+  for (let r = 0; r < 6; r++) {
+    const guess = wdl.guesses[r];
+    const cur = (r === wdl.guesses.length && !wdl.done) ? wdl.current : '';
+    const text = guess || cur || '';
+    for (let c = 0; c < 5; c++) {
+      const tile = document.getElementById('wdTile' + r + '-' + c);
+      if (!tile) continue;
+      tile.textContent = text[c] || '';
+      tile.className = 'wd-tile' + (text[c] ? ' filled' : '');
+    }
+  }
+
+  wdl.guesses.forEach((g, r) => {
+    const res = wdlScore(g, wdl.answer);
+    for (let c = 0; c < 5; c++) {
+      const tile = document.getElementById('wdTile' + r + '-' + c);
+      if (tile) tile.classList.add(res[c]);
+    }
+  });
+
+  wdlRenderKeys();
+  wdlRenderStats();
+
+  const msg = document.getElementById('wdMsg');
+  if (msg) { msg.textContent = wdl.msg || ''; msg.className = 'wd-msg ' + (wdl.msgKind || ''); }
+
+  const sel = document.getElementById('wdMode');
+  if (sel) sel.value = wdl.mode === 'daily' ? 'daily' : 'practice';
+}
+
+function wdlRenderKeys() {
+  const best = {};
+  const rank = { absent: 1, present: 2, correct: 3 };
+  if (wdl) {
+    wdl.guesses.forEach(g => {
+      const res = wdlScore(g, wdl.answer);
+      for (let i = 0; i < 5; i++) {
+        const ch = g[i];
+        if (!best[ch] || rank[res[i]] > rank[best[ch]]) best[ch] = res[i];
+      }
+    });
+  }
+  document.querySelectorAll('.wd-key[data-key]').forEach(btn => {
+    const k = btn.dataset.key;
+    btn.classList.remove('correct', 'present', 'absent');
+    if (best[k]) btn.classList.add(best[k]);
+  });
+}
+
+function wdlRenderStats() {
+  const el = document.getElementById('wdStats');
+  if (!el) return;
+  const s = wdlGetStats();
+  const pct = s.played ? Math.round((s.wins / s.played) * 100) : 0;
+  el.textContent = 'played ' + s.played + ' · win ' + pct + '% · streak ' + s.streak + ' · best ' + s.max;
+}
+
+function wdlMsg(text, kind, shake) {
+  if (!wdl) return;
+  wdl.msg = text;
+  wdl.msgKind = kind || '';
+  const el = document.getElementById('wdMsg');
+  if (el) { el.textContent = text; el.className = 'wd-msg ' + (kind || ''); }
+  if (shake) {
+    const row = document.getElementById('wdRow' + wdl.guesses.length);
+    if (row) { row.classList.remove('shake'); void row.offsetWidth; row.classList.add('shake'); }
+  }
+}
+
+function wdlInput(ch) {
+  if (!wdl || wdl.done || wdlBusy) return;
+  if (wdl.current.length >= 5) return;
+  wdl.current += ch;
+  wdl.msg = '';
+  wdl.msgKind = '';
+  wdlRender();
+}
+
+function wdlBack() {
+  if (!wdl || wdl.done || wdlBusy) return;
+  wdl.current = wdl.current.slice(0, -1);
+  wdlRender();
+}
+
+function wdlKey(k) {
+  if (!wdl) return;
+  if (k === 'enter') { wdlSubmit(); return; }
+  if (k === 'back' || k === 'backspace' || k === 'del') { wdlBack(); return; }
+  if (/^[a-z]$/.test(k)) wdlInput(k);
+}
+
+function wdlSubmit() {
+  if (!wdl || wdl.done || wdlBusy) return;
+  const guess = wdl.current.toLowerCase();
+  if (guess.length < 5) { wdlMsg('not enough letters', 'bad', true); return; }
+  if (!wdlData().valid.has(guess)) { wdlMsg('not in the word list', 'bad', true); return; }
+
+  const answer = wdl.answer;
+  const res = wdlScore(guess, answer);
+  const rowIdx = wdl.guesses.length;
+
+  wdl.guesses.push(guess);
+  wdl.current = '';
+  wdl.msg = '';
+  wdl.msgKind = '';
+  wdlBusy = true;
+
+  for (let c = 0; c < 5; c++) {
+    const tile = document.getElementById('wdTile' + rowIdx + '-' + c);
+    if (tile) { tile.textContent = guess[c]; tile.className = 'wd-tile filled'; }
+  }
+  const msgEl = document.getElementById('wdMsg');
+  if (msgEl) { msgEl.textContent = ''; msgEl.className = 'wd-msg'; }
+
+  for (let c = 0; c < 5; c++) {
+    setTimeout(() => {
+      const tile = document.getElementById('wdTile' + rowIdx + '-' + c);
+      if (!tile) return;
+      tile.classList.add('flip');
+      setTimeout(() => tile.classList.add(res[c]), 120);
+    }, c * 170);
+  }
+
+  setTimeout(() => {
+    wdlBusy = false;
+    const won = guess === answer;
+    if (won) {
+      wdl.done = true;
+      wdl.msg = wdl.guesses.length === 1 ? 'one try. unreal.' : 'got it in ' + wdl.guesses.length + '!';
+      wdl.msgKind = 'good';
+    } else if (wdl.guesses.length >= 6) {
+      wdl.done = true;
+      wdl.msg = 'the word was ' + answer.toUpperCase();
+      wdl.msgKind = 'bad';
+    }
+    if (wdl.done) wdlRecord(won);
+    wdlSave();
+    wdlRenderKeys();
+    wdlRenderStats();
+    const el = document.getElementById('wdMsg');
+    if (el) { el.textContent = wdl.msg || ''; el.className = 'wd-msg ' + (wdl.msgKind || ''); }
+  }, 5 * 170 + 220);
+}
+
+function wdlNewWord() {
+  const answers = wdlData().answers;
+  let next = answers[Math.floor(Math.random() * answers.length)];
+  let guard = 0;
+  while (wdl && next === wdl.answer && guard++ < 20) {
+    next = answers[Math.floor(Math.random() * answers.length)];
+  }
+  try { localStorage.setItem(WDL_MODE_KEY, 'practice'); } catch {}
+  wdl = { mode: 'practice', day: wdlDayNum(), answer: next, guesses: [], current: '', done: false, msg: '', msgKind: '' };
+  wdlBusy = false;
+  wdlRender();
+}
+
+function wdlSetMode(mode) {
+  try { localStorage.setItem(WDL_MODE_KEY, mode === 'practice' ? 'practice' : 'daily'); } catch {}
+  if (mode === 'practice') { wdlNewWord(); return; }
+  wdlInit();
+}
+
+function wdlLegacyCopy(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch { return false; }
+}
+
+function wdlShare() {
+  if (!wdl || !wdl.guesses.length) { wdlMsg('nothing to share yet', 'bad'); return; }
+  const emoji = { correct: '🟩', present: '🟨', absent: '⬛' };
+  const won = wdl.guesses[wdl.guesses.length - 1] === wdl.answer;
+  const head = 'wordle ' + (wdl.mode === 'daily' ? 'daily' : 'practice') + ' ' +
+    wdl.guesses.length + '/6' + (won ? '' : ' X');
+  const gridText = wdl.guesses.map(g => wdlScore(g, wdl.answer).map(r => emoji[r]).join('')).join('\n');
+  const text = head + '\n\n' + gridText + '\n\ncf-browser';
+
+  const done = ok => wdlMsg(ok ? 'copied to clipboard' : 'copy failed', ok ? 'good' : 'bad');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => done(true), () => done(!!wdlLegacyCopy(text)));
+    return;
+  }
+  done(!!wdlLegacyCopy(text));
+}
+
+document.addEventListener('keydown', (e) => {
+  const grid = document.getElementById('wdGrid');
+  if (!grid || grid.offsetParent === null) return;
+  const el = document.activeElement;
+  if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'enter') { e.preventDefault(); wdlKey('enter'); return; }
+  if (k === 'backspace') { e.preventDefault(); wdlKey('back'); return; }
+  if (/^[a-z]$/.test(k)) { e.preventDefault(); wdlKey(k); }
+});
+
+document.addEventListener('click', (e) => {
+  const key = e.target && e.target.closest ? e.target.closest('.wd-key') : null;
+  if (key) wdlKey(key.dataset.key);
+});
+
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.id === 'wdMode') wdlSetMode(e.target.value);
+});
 
 
 function navigateTo(url) {
@@ -704,6 +1228,17 @@ function goForward() {
 }
 
 function loadUrlWithoutHistory(tab, url) {
+  const cfbPage = cfbPageFrom(url);
+  if (cfbPage) {
+    tab.url = url;
+    tab.title = 'cfb::' + cfbPage;
+    renderTabs();
+    updateAddrBar();
+    updateNavButtons();
+    updateStarBtn();
+    showCfbPage(tab, cfbPage);
+    return;
+  }
   tab.loading = true;
   tab.title = hostLabel(url);
   renderTabs();
@@ -764,7 +1299,7 @@ let mpWs = null, mpRoomId = null, mpPeerId = null, mpIsHost = false, mpPeers = [
 
 // room codes are generated locally - the durable object is created by the websocket itself,
 // so hosting needs zero fetch (no CORS, no NetworkError)
-let mpConfig = { host: false, pw: '', max: 8, chat: true, cursors: true, nav: 'all' };
+let mpConfig = { host: false, pw: '', max: 8, chat: true, cursors: true, nav: 'host' };
 let mpRoomSettings = { locked: false, max: 8, chat: true, cursors: true, nav: 'all', peers: 0 };
 let mpCursorsAllowed = true;
 
@@ -804,8 +1339,8 @@ function mpHost() {
     '<div class="mp-toggles">' +
       '<label class="mp-check"><input type="checkbox" id="mpSetChat" checked><span>chat</span></label>' +
       '<label class="mp-check"><input type="checkbox" id="mpSetCursors" checked><span>live cursors</span></label>' +
-      '<label class="mp-check"><input type="checkbox" id="mpSetNav"><span>only the host can change the page</span></label>' +
     '</div>' +
+    '<label style="margin-top:8px;">page sync<select id="mpSetNav" style="margin-left:8px;"><option value="off">off - everyone browses alone</option><option value="host" selected>host leads</option><option value="all">anyone can change it</option></select></label>' +
     '<p class="mp-hint" id="mpInviteHint"></p>' +
     '<button onclick="mpStartHost()">Start room</button>' +
     '<button class="secondary" onclick="mpCopyInvite(this)">Copy invite</button>' +
@@ -829,7 +1364,7 @@ function mpStartHost() {
     max: Number.isFinite(maxRaw) ? Math.max(2, Math.min(50, maxRaw)) : 8,
     chat: !!((document.getElementById('mpSetChat') || {}).checked),
     cursors: !!((document.getElementById('mpSetCursors') || {}).checked),
-    nav: (document.getElementById('mpSetNav') || {}).checked ? 'host' : 'all',
+    nav: (document.getElementById('mpSetNav') || {}).value || 'host',
   };
   closeMpOverlay();
   mpConnect();
@@ -871,7 +1406,7 @@ function mpDoJoin() {
   if (!code) return;
   closeMpOverlay();
   mpRoomId = code;
-  mpConfig = { host: false, pw: (pwEl.value || '').slice(0, 64), max: 8, chat: true, cursors: true, nav: 'all' };
+  mpConfig = { host: false, pw: (pwEl.value || '').slice(0, 64), max: 8, chat: true, cursors: true, nav: 'host' };
   mpConnect();
 }
 
@@ -941,6 +1476,11 @@ function mpResetRoom() {
   const leaveBtn = document.getElementById('mpLeaveBtn');
   if (chatBtn) chatBtn.style.display = 'none';
   if (leaveBtn) leaveBtn.style.display = 'none';
+  const followBtn = document.getElementById('mpFollowBtn');
+  const cursorsBtn = document.getElementById('mpCursorsBtn');
+  if (followBtn) followBtn.style.display = 'none';
+  if (cursorsBtn) cursorsBtn.style.display = 'none';
+  mpFollow = true;
   const chat = document.getElementById('mpChat');
   if (chat) chat.classList.remove('open');
 }
@@ -990,6 +1530,17 @@ function mpHandleMessage(msg) {
       mpUpdatePeers();
       document.getElementById('mpChatBtn').style.display = msg.settings && msg.settings.chat === false ? 'none' : '';
       document.getElementById('mpLeaveBtn').style.display = '';
+      const _followBtn = document.getElementById('mpFollowBtn');
+      const _cursorsBtn = document.getElementById('mpCursorsBtn');
+      if (_followBtn) {
+        _followBtn.style.display = (msg.settings && msg.settings.nav === 'off') ? 'none' : '';
+        _followBtn.textContent = 'Follow: on';
+      }
+      if (_cursorsBtn) {
+        _cursorsBtn.style.display = '';
+        _cursorsBtn.textContent = 'Cursors: ' + (msg.settings && msg.settings.cursors === false ? 'off' : 'on');
+      }
+      mpFollow = true;
       mpApplySettings(msg.settings);
       mpAddChatMsg('', (mpIsHost ? 'room ' + mpRoomId + ' opened, you are host' : 'joined room ' + mpRoomId) +
         (msg.settings && msg.settings.locked ? ' (locked)' : ''), { sys: true });
@@ -1023,6 +1574,7 @@ function mpHandleMessage(msg) {
       break;
     case 'navigate':
       if (msg.by !== mpPeerId && activeTab && msg.url) {
+        if (!mpIsHost && !mpFollow) return;
         mpSuppressNav = true;
         try { loadUrl(activeTab, msg.url); } finally { mpSuppressNav = false; }
       }
@@ -1032,6 +1584,12 @@ function mpHandleMessage(msg) {
       break;
     case 'cursor':
       if (msg.id !== mpPeerId) mpUpsertCursor(msg.id, msg.name, msg.x, msg.y);
+      break;
+    case 'click':
+      if (msg.id !== mpPeerId) mpShowClick(msg.x, msg.y);
+      break;
+    case 'scroll':
+      if (msg.id !== mpPeerId) mpApplyScroll(msg.y);
       break;
     case 'host-changed':
       mpIsHost = (msg.host === mpPeerId);
@@ -1091,6 +1649,32 @@ function mpRemoveCursor(id) {
   if (el) { clearTimeout(el._hideT); el.remove(); mpCursorEls.delete(id); }
 }
 
+function mpShowClick(x, y) {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:' + (x * 100) + '%;top:' + (y * 100) + '%;width:0;height:0;pointer-events:none;z-index:62;';
+  const ring = document.createElement('div');
+  ring.className = 'mp-click-ring';
+  el.appendChild(ring);
+  document.body.appendChild(el);
+  setTimeout(() => { try { el.remove(); } catch (e) {} }, 700);
+}
+
+function mpApplyScroll(y) {
+  if (!Number.isFinite(y)) return;
+  if (!mpFollow && !mpIsHost) return;
+  const frame = activeTab && activeTab.frame;
+  if (!frame || !frame.isConnected) return;
+  mpScrollLock = true;
+  try {
+    const doc = frame.contentDocument;
+    const sh = (doc.documentElement && doc.documentElement.scrollHeight) || (doc.body && doc.body.scrollHeight) || 0;
+    const max = Math.max(1, sh - frame.clientHeight);
+    if (frame.contentWindow) frame.contentWindow.scrollTo(0, y * max);
+  } catch (e) {}
+  setTimeout(() => { mpScrollLock = false; }, 250);
+}
+
 function mpClearCursors() {
   for (const el of mpCursorEls.values()) { clearTimeout(el._hideT); el.remove(); }
   mpCursorEls.clear();
@@ -1109,6 +1693,32 @@ function mpSendCursor(x, y) {
     x: Math.round(x * 1000) / 1000,
     y: Math.round(y * 1000) / 1000,
   }));
+}
+
+let mpLastClickSend = 0;
+function mpSendClick(x, y) {
+  if (!mpWs || mpWs.readyState !== WebSocket.OPEN) return;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  const now = Date.now();
+  if (now - mpLastClickSend < 80) return;
+  mpLastClickSend = now;
+  mpWs.send(JSON.stringify({
+    type: 'click',
+    x: Math.round(x * 1000) / 1000,
+    y: Math.round(y * 1000) / 1000,
+  }));
+}
+
+let mpLastScrollSend = 0;
+let mpScrollLock = false;
+function mpSendScroll(y) {
+  if (mpScrollLock) return;
+  if (!mpWs || mpWs.readyState !== WebSocket.OPEN) return;
+  if (!Number.isFinite(y)) return;
+  const now = Date.now();
+  if (now - mpLastScrollSend < 80) return;
+  mpLastScrollSend = now;
+  mpWs.send(JSON.stringify({ type: 'scroll', y: Math.max(0, Math.min(1, y)) }));
 }
 
 document.addEventListener('mousemove', (e) => {
@@ -1143,6 +1753,7 @@ function mpLeave() {
 }
 
 let mpLeavingType = false;
+let mpFollow = true;
 
 function mpToggleChat() {
   const panel = document.getElementById('mpChat');
@@ -1154,6 +1765,54 @@ function mpToggleChat() {
     if (input) setTimeout(() => input.focus(), 30);
   }
 }
+
+function mpToggleFollow() {
+  mpFollow = !mpFollow;
+  const btn = document.getElementById('mpFollowBtn');
+  if (btn) btn.textContent = 'Follow: ' + (mpFollow ? 'on' : 'off');
+}
+
+function mpToggleCursors() {
+  mpCursorsAllowed = !mpCursorsAllowed;
+  if (!mpCursorsAllowed) mpClearCursors();
+  const btn = document.getElementById('mpCursorsBtn');
+  if (btn) btn.textContent = 'Cursors: ' + (mpCursorsAllowed ? 'on' : 'off');
+}
+
+let mpChatDrag = null;
+
+function mpChatDragStart(e) {
+  const t = e.target;
+  if (!t || (t.closest && t.closest('button, input, select, textarea, .close, .mp-chat-who'))) return;
+  const panel = document.getElementById('mpChat');
+  if (!panel || !panel.classList.contains('open')) return;
+  const r = panel.getBoundingClientRect();
+  panel.style.left = r.left + 'px';
+  panel.style.top = r.top + 'px';
+  panel.style.right = 'auto';
+  panel.style.bottom = 'auto';
+  mpChatDrag = { ox: e.clientX - r.left, oy: e.clientY - r.top };
+  e.preventDefault();
+}
+
+document.addEventListener('mousedown', (e) => {
+  const header = e.target && e.target.closest ? e.target.closest('.mp-chat-header') : null;
+  if (header) mpChatDragStart(e);
+});
+document.addEventListener('mousemove', (e) => {
+  if (!mpChatDrag) return;
+  const panel = document.getElementById('mpChat');
+  if (!panel) return;
+  let x = e.clientX - mpChatDrag.ox;
+  let y = e.clientY - mpChatDrag.oy;
+  const maxX = Math.max(0, window.innerWidth - panel.offsetWidth);
+  const maxY = Math.max(0, window.innerHeight - panel.offsetHeight);
+  x = Math.max(0, Math.min(maxX, x));
+  y = Math.max(0, Math.min(maxY, y));
+  panel.style.left = x + 'px';
+  panel.style.top = y + 'px';
+});
+document.addEventListener('mouseup', () => { mpChatDrag = null; });
 
 let mpMyName = '';
 let mpUnread = 0;
@@ -1284,7 +1943,14 @@ function applyZoom() {
 }
 
 // ===== HOME =====
-function goHome() { if (!activeTab) return; loadUrl(activeTab, settings.homepage || 'https://www.google.com'); }
+function goHome() { if (!activeTab) return; loadUrl(activeTab, localStorage.getItem('cfb_homepage') || 'https://www.google.com'); }
+
+function cfbSetHome() {
+  const el = document.getElementById('setHome');
+  if (el) { try { localStorage.setItem('cfb_homepage', el.value.trim() || 'https://www.google.com'); } catch {} }
+  const btn = document.querySelector('[onclick="cfbSetHome()"]');
+  if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save'; }, 1200); }
+}
 
 // ===== TAB PINNING =====
 function togglePin(id, e) {

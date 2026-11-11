@@ -109,6 +109,25 @@ export async function onRequest(context) {
       y: e.clientY / Math.max(1, window.innerHeight)
     }, '*');
   }, { passive: true });
+  // Relay clicks so peers can see what you are actually doing, not just the cursor
+  document.addEventListener('click', function(e) {
+    try {
+      window.parent.postMessage({
+        type: 'click',
+        x: e.clientX / Math.max(1, window.innerWidth),
+        y: e.clientY / Math.max(1, window.innerHeight)
+      }, '*');
+    } catch (err) {}
+  }, true);
+  // Relay scroll position so followers stay in sync
+  var lastScroll = 0;
+  window.addEventListener('scroll', function() {
+    var now = Date.now();
+    if (now - lastScroll < 60) return;
+    lastScroll = now;
+    var max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    window.parent.postMessage({ type: 'scroll', y: window.scrollY / max }, '*');
+  }, { passive: true });
   // Tell the browser shell when the page's own scripts die, so it can show a
   // useful message instead of leaving a silent white screen
   var reported = 0;
