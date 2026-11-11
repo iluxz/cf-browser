@@ -62,6 +62,27 @@ export async function onRequest(context) {
     const base = targetUrl.origin + targetUrl.pathname.replace(/\/[^\/]*$/, '/');
     html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">`);
 
+    // Rewrite subresource URLs (scripts, stylesheets, images, modules) so JS
+    // apps load their assets through the proxy instead of fetching directly
+    // from the origin (which gets CORS-blocked or fails).
+    const PROXY_PREFIX = url.origin + '/api/proxy?url=';
+    function toProxy(u) {
+      if (!u || u.startsWith('data:') || u.startsWith('blob:') || u.startsWith('javascript:') || u.startsWith('#') || u.startsWith('mailto:')) return u;
+      try {
+        const resolved = new URL(u, base).href;
+        if (resolved.startsWith(PROXY_PREFIX)) return u;
+        return PROXY_PREFIX + encodeURIComponent(resolved);
+      } catch { return u; }
+    }
+    html = html.replace(/(src|href)\s*=\s*"([^"]*)"/gi, function(m, attr, val) {
+      const nu = toProxy(val);
+      return nu === val ? m : attr + '="' + nu + '"';
+    });
+    html = html.replace(/(src|href)\s*=\s*'([^']*)'/gi, function(m, attr, val) {
+      const nu = toProxy(val);
+      return nu === val ? m : attr + "='" + nu + "'";
+    });
+
     // Absolute proxy url: a relative "/api/proxy?url=" gets resolved against the
     // target's <base>, which is what made youtube/gmail throw SecurityError and go blank
     const proxyBase = JSON.stringify(url.origin + '/api/proxy?url=');
