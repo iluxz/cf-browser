@@ -347,6 +347,7 @@
   <button class="mp-btn" id="mpChatBtn" onclick="mpToggleChat()" style="display:none">Chat</button>
   <button class="mp-btn" id="mpFollowBtn" onclick="mpToggleFollow()" style="display:none">Follow: on</button>
   <button class="mp-btn" id="mpCursorsBtn" onclick="mpToggleCursors()" style="display:none">Cursors: on</button>
+  <button class="mp-btn" id="mpShareBtn" onclick="mpToggleShare()" style="display:none">Share screen</button>
   <button class="mp-btn" id="mpLeaveBtn" onclick="mpLeave()" style="display:none">Leave</button>
 </div>
 <div class="mp-chat" id="mpChat">
@@ -362,6 +363,11 @@
   </div>
 </div>
 <div class="content" id="content"></div>
+<div id="mpShareView" style="display:none;position:fixed;inset:0;z-index:70;background:#000;">
+  <video id="mpShareVideo" autoplay playsinline style="width:100%;height:100%;object-fit:contain;"></video>
+  <button onclick="mpStopViewing()" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,.6);color:#fff;border:1px solid #555;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;">close</button>
+  <div id="mpShareLabel" style="position:absolute;bottom:12px;left:12px;color:#fff;font-size:12px;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:6px;"></div>
+</div>
 <div id="findBarContainer"></div>
 
 <div class="statusbar" id="statusbar">Ready</div>
@@ -848,6 +854,7 @@ function wdlData() {
 
 let wdl = null;
 let wdlBusy = false;
+let wdlSuppress = false;
 
 function wdlDayNum() {
   const d = new Date();
@@ -1093,6 +1100,9 @@ function wdlSubmit() {
 
   wdl.guesses.push(guess);
   wdl.current = '';
+  if (mpWs && mpWs.readyState === WebSocket.OPEN && !wdlSuppress) {
+    try { mpWs.send(JSON.stringify({ type: 'wordle', guess, answer: wdl.answer, by: mpPeerId })); } catch (e) {}
+  }
   wdl.msg = '';
   wdl.msgKind = '';
   wdlBusy = true;
@@ -1132,6 +1142,23 @@ function wdlSubmit() {
     const el = document.getElementById('wdMsg');
     if (el) { el.textContent = wdl.msg || ''; el.className = 'wd-msg ' + (wdl.msgKind || ''); }
   }, 5 * 170 + 220);
+}
+
+function wdlApplyRemote(guess, answer) {
+  if (!wdl || !guess) return;
+  if (answer) wdl.answer = answer;
+  // avoid double-applying the same guess
+  if (wdl.guesses.length && wdl.guesses[wdl.guesses.length - 1] === guess) return;
+  wdl.guesses.push(String(guess).toLowerCase());
+  wdl.current = '';
+  wdlBusy = false;
+  const won = wdl.guesses[wdl.guesses.length - 1] === wdl.answer;
+  if (won) { wdl.done = true; wdl.msg = 'got it in ' + wdl.guesses.length + '!'; wdl.msgKind = 'good'; wdlRecord(won); }
+  else if (wdl.guesses.length >= 6) { wdl.done = true; wdl.msg = 'the word was ' + wdl.answer.toUpperCase(); wdl.msgKind = 'bad'; wdlRecord(false); }
+  wdlSave();
+  wdlRender();
+  const el = document.getElementById('wdMsg');
+  if (el) { el.textContent = wdl.msg || ''; el.className = 'wd-msg ' + (wdl.msgKind || ''); }
 }
 
 function wdlNewWord() {
@@ -1480,7 +1507,11 @@ function mpResetRoom() {
   const cursorsBtn = document.getElementById('mpCursorsBtn');
   if (followBtn) followBtn.style.display = 'none';
   if (cursorsBtn) cursorsBtn.style.display = 'none';
+  const shareBtn = document.getElementById('mpShareBtn');
+  if (shareBtn) { shareBtn.style.display = 'none'; shareBtn.textContent = 'Share screen'; }
   mpFollow = true;
+  if (mpSharing) mpStopShare();
+  mpStopViewing();
   const chat = document.getElementById('mpChat');
   if (chat) chat.classList.remove('open');
 }
@@ -1532,6 +1563,7 @@ function mpHandleMessage(msg) {
       document.getElementById('mpLeaveBtn').style.display = '';
       const _followBtn = document.getElementById('mpFollowBtn');
       const _cursorsBtn = document.getElementById('mpCursorsBtn');
+      const _shareBtn = document.getElementById('mpShareBtn');
       if (_followBtn) {
         _followBtn.style.display = (msg.settings && msg.settings.nav === 'off') ? 'none' : '';
         _followBtn.textContent = 'Follow: on';
@@ -1540,6 +1572,7 @@ function mpHandleMessage(msg) {
         _cursorsBtn.style.display = '';
         _cursorsBtn.textContent = 'Cursors: ' + (msg.settings && msg.settings.cursors === false ? 'off' : 'on');
       }
+      if (_shareBtn) _shareBtn.style.display = '';
       mpFollow = true;
       mpApplySettings(msg.settings);
       mpAddChatMsg('', (mpIsHost ? 'room ' + mpRoomId + ' opened, you are host' : 'joined room ' + mpRoomId) +
@@ -1554,6 +1587,10 @@ function mpHandleMessage(msg) {
       mpUpdatePeers();
       mpSetStatus(mpStatusText(), mpIsHost ? 'hosting' : 'connected');
       mpAddChatMsg('', (msg.peer ? msg.peer.name : 'someone') + ' joined', { sys: true });
+      // if we are sharing, start sharing to the new peer too
+      if (mpSharing && mpSharingStream && mpIsHost && msg.peer) {
+        mpCreateHostPeer(msg.peer.id, mpSharingStream);
+      }
       break;
     case 'peer-left': {
       const gone = mpPeers.find(p => p.id === msg.id);
@@ -1590,6 +1627,25 @@ function mpHandleMessage(msg) {
       break;
     case 'scroll':
       if (msg.id !== mpPeerId) mpApplyScroll(msg.y);
+      break;
+    case 'wordle':
+      if (msg.by === mpPeerId) break;
+      wdlApplyRemote(msg.guess, msg.answer);
+      break;
+    case 'offer':
+      if (msg.to && msg.to !== mpPeerId) break;
+      mpHandleOffer(msg);
+      break;
+    case 'answer':
+      if (msg.to && msg.to !== mpPeerId) break;
+      mpHandleAnswer(msg);
+      break;
+    case 'ice':
+      if (msg.to && msg.to !== mpPeerId) break;
+      mpHandleIce(msg);
+      break;
+    case 'share-stopped':
+      mpStopViewing();
       break;
     case 'host-changed':
       mpIsHost = (msg.host === mpPeerId);
@@ -1777,6 +1833,122 @@ function mpToggleCursors() {
   if (!mpCursorsAllowed) mpClearCursors();
   const btn = document.getElementById('mpCursorsBtn');
   if (btn) btn.textContent = 'Cursors: ' + (mpCursorsAllowed ? 'on' : 'off');
+}
+
+// ===== SCREEN SHARING (WebRTC) =====
+let mpSharing = false;
+let mpViewingShare = false;
+const mpPeerConnections = new Map();
+const mpIceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+function mpToggleShare() {
+  if (mpSharing) mpStopShare();
+  else mpStartShare();
+}
+
+async function mpStartShare() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    alert('screen sharing is not supported in this browser');
+    return;
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+  } catch (e) {
+    return; // user cancelled
+  }
+  mpSharing = true;
+  const btn = document.getElementById('mpShareBtn');
+  if (btn) btn.textContent = 'Stop sharing';
+  mpSharingStream = stream;
+  stream.getVideoTracks()[0].onended = () => mpStopShare();
+
+  // create a peer connection to each existing peer
+  mpPeers.forEach(p => mpCreateHostPeer(p.id, stream));
+}
+
+let mpSharingStream = null;
+
+function mpCreateHostPeer(peerId, stream) {
+  const pc = new RTCPeerConnection({ iceServers: mpIceServers });
+  mpPeerConnections.set(peerId, pc);
+  stream.getTracks().forEach(t => pc.addTrack(t, stream));
+  pc.onicecandidate = (e) => {
+    if (e.candidate && mpWs && mpWs.readyState === WebSocket.OPEN) {
+      mpWs.send(JSON.stringify({ type: 'ice', to: peerId, candidate: e.candidate }));
+    }
+  };
+  pc.createOffer().then(offer => {
+    pc.setLocalDescription(offer);
+    if (mpWs && mpWs.readyState === WebSocket.OPEN) {
+      mpWs.send(JSON.stringify({ type: 'offer', to: peerId, sdp: offer }));
+    }
+  }).catch(() => {});
+}
+
+function mpStopShare() {
+  mpSharing = false;
+  const btn = document.getElementById('mpShareBtn');
+  if (btn) btn.textContent = 'Share screen';
+  if (mpSharingStream) {
+    mpSharingStream.getTracks().forEach(t => t.stop());
+    mpSharingStream = null;
+  }
+  mpPeerConnections.forEach(pc => { try { pc.close(); } catch (e) {} });
+  mpPeerConnections.clear();
+  if (mpWs && mpWs.readyState === WebSocket.OPEN) {
+    mpWs.send(JSON.stringify({ type: 'share-stopped' }));
+  }
+}
+
+function mpStopViewing() {
+  mpViewingShare = false;
+  const v = document.getElementById('mpShareView');
+  if (v) v.style.display = 'none';
+  const vid = document.getElementById('mpShareVideo');
+  if (vid) vid.srcObject = null;
+  mpPeerConnections.forEach(pc => { try { pc.close(); } catch (e) {} });
+  mpPeerConnections.clear();
+}
+
+// guest: handle incoming offer
+async function mpHandleOffer(msg) {
+  const pc = new RTCPeerConnection({ iceServers: mpIceServers });
+  mpPeerConnections.set(msg.from, pc);
+  pc.ontrack = (e) => {
+    const vid = document.getElementById('mpShareVideo');
+    if (vid && e.streams && e.streams[0]) {
+      vid.srcObject = e.streams[0];
+      const view = document.getElementById('mpShareView');
+      if (view) view.style.display = 'block';
+      mpViewingShare = true;
+      const label = document.getElementById('mpShareLabel');
+      if (label) label.textContent = (msg.name || 'host') + ' is sharing their screen';
+    }
+  };
+  pc.onicecandidate = (e) => {
+    if (e.candidate && mpWs && mpWs.readyState === WebSocket.OPEN) {
+      mpWs.send(JSON.stringify({ type: 'ice', to: msg.from, candidate: e.candidate }));
+    }
+  };
+  await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  if (mpWs && mpWs.readyState === WebSocket.OPEN) {
+    mpWs.send(JSON.stringify({ type: 'answer', to: msg.from, sdp: answer }));
+  }
+}
+
+async function mpHandleAnswer(msg) {
+  const pc = mpPeerConnections.get(msg.from);
+  if (!pc) return;
+  try { await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp)); } catch (e) {}
+}
+
+async function mpHandleIce(msg) {
+  const pc = mpPeerConnections.get(msg.from);
+  if (!pc) return;
+  try { await pc.addIceCandidate(new RTCIceCandidate(msg.candidate)); } catch (e) {}
 }
 
 let mpChatDrag = null;

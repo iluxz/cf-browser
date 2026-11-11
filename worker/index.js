@@ -190,6 +190,28 @@ export class Room {
           if (settings.nav === 'off') return;
           this.broadcast({ type: 'scroll', id, y: Math.max(0, Math.min(1, Number(msg.y) || 0)) }, ws);
           break;
+        case 'wordle':
+          this.broadcast({ type: 'wordle', guess: String(msg.guess || '').slice(0, 5), answer: String(msg.answer || '').slice(0, 5), by: id }, ws);
+          break;
+        case 'offer':
+        case 'answer':
+        case 'ice':
+        case 'share-stopped':
+          // targeted relay for WebRTC signaling
+          if (msg.to) {
+            const target = this.sessions.get([...this.sessions.keys()].find(() => true));
+            // find session by id
+            let targetWs = null;
+            for (const [sWs, s] of this.sessions) {
+              if (s.id === msg.to) { targetWs = sWs; break; }
+            }
+            if (targetWs && targetWs.readyState === 1) {
+              try { targetWs.send(JSON.stringify({ ...msg, from: id })); } catch {}
+            }
+          } else {
+            this.broadcast({ ...msg, from: id }, ws);
+          }
+          break;
         case 'ping':
           try { ws.send(JSON.stringify({ type: 'pong' })); } catch {}
           break;
