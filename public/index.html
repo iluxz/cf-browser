@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CF Browser</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; overflow: hidden; height: 100vh; }
+
+  /* Title bar */
+  .titlebar {
+    height: 32px; background: #0f0f1a; display: flex; align-items: center;
+    padding: 0 12px; font-size: 12px; color: #888; border-bottom: 1px solid #2a2a3e;
+    -webkit-app-region: drag;
+  }
+
+  /* Tab bar */
+  .tabbar {
+    height: 36px; background: #16162a; display: flex; align-items: center;
+    padding: 0 8px; gap: 4px; border-bottom: 1px solid #2a2a3e; overflow-x: auto;
+  }
+  .tabbar::-webkit-scrollbar { height: 0; }
+  .tab {
+    height: 28px; padding: 0 12px; border-radius: 6px 6px 0 0;
+    background: #1e1e3a; color: #aaa; font-size: 12px; display: flex;
+    align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;
+    min-width: 100px; max-width: 200px; border: 1px solid transparent;
+    border-bottom: none; transition: background 0.1s;
+  }
+  .tab.active { background: #2a2a4e; color: #fff; border-color: #3a3a5e; }
+  .tab:hover:not(.active) { background: #24243e; }
+  .tab .close { opacity: 0.5; cursor: pointer; font-size: 14px; margin-left: auto; }
+  .tab .close:hover { opacity: 1; color: #ff5a8a; }
+  .newtab-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: none;
+    background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+  }
+  .newtab-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+  /* Address bar row */
+  .addrbar {
+    height: 40px; background: #16162a; display: flex; align-items: center;
+    padding: 0 8px; gap: 6px; border-bottom: 1px solid #2a2a3e;
+  }
+  .nav-btn {
+    width: 32px; height: 32px; border-radius: 6px; border: none;
+    background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer;
+    font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .addr-input {
+    flex: 1; height: 28px; border-radius: 14px; border: 1px solid #3a3a5e;
+    background: #0f0f1a; color: #e0e0e0; padding: 0 14px; font-size: 13px;
+    outline: none;
+  }
+  .addr-input:focus { border-color: #7c5cff; }
+  .go-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: none;
+    background: #7c5cff; color: #fff; cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .go-btn:hover { background: #6a4bef; }
+
+  /* Content area */
+  .content {
+    height: calc(100vh - 108px); position: relative; background: #fff;
+  }
+  .webview {
+    width: 100%; height: 100%; border: none; background: #fff;
+  }
+  .loading {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: #1a1a2e; color: #aaa;
+    font-size: 14px; gap: 12px;
+  }
+  .loading .spinner {
+    width: 32px; height: 32px; border: 3px solid #3a3a5e;
+    border-top-color: #7c5cff; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-page {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: #1a1a2e; color: #aaa;
+    font-size: 14px; gap: 8px; text-align: center; padding: 20px;
+  }
+  .error-page h2 { color: #ff5a8a; font-size: 20px; }
+  .error-page .url { color: #7c5cff; font-size: 12px; word-break: break-all; }
+
+  /* New tab page */
+  .newtab {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: #1a1a2e; gap: 20px;
+  }
+  .newtab h1 { font-size: 32px; color: #7c5cff; }
+  .newtab p { color: #666; font-size: 13px; }
+  .newtab .shortcuts {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 20px;
+  }
+  .newtab .shortcut {
+    width: 80px; text-align: center; cursor: pointer; padding: 8px;
+    border-radius: 8px; transition: background 0.1s;
+  }
+  .newtab .shortcut:hover { background: rgba(255,255,255,0.05); }
+  .newtab .shortcut .icon { font-size: 28px; margin-bottom: 4px; }
+  .newtab .shortcut .label { font-size: 11px; color: #aaa; }
+
+  /* Status bar */
+  .statusbar {
+    height: 20px; background: #0f0f1a; display: flex; align-items: center;
+    padding: 0 12px; font-size: 10px; color: #555; border-top: 1px solid #2a2a3e;
+  }
+</style>
+</head>
+<body>
+
+<div class="titlebar">CF Browser — Powered by Cloudflare Pages</div>
+
+<div class="tabbar" id="tabbar">
+  <button class="newtab-btn" onclick="newTab()">+</button>
+</div>
+
+<div class="addrbar">
+  <button class="nav-btn" id="backBtn" onclick="goBack()" disabled>←</button>
+  <button class="nav-btn" id="fwdBtn" onclick="goForward()" disabled>→</button>
+  <button class="nav-btn" onclick="reload()">↻</button>
+  <input class="addr-input" id="addrInput" placeholder="Enter URL or search..." onkeydown="if(event.key==='Enter')navigate()">
+  <button class="go-btn" onclick="navigate()">→</button>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="statusbar" id="statusbar">Ready</div>
+
+<script>
+const PROXY = '/api/proxy?url=';
+
+let tabs = [];
+let activeTab = null;
+let tabCounter = 0;
+
+const SHORTCUTS = [
+  { icon: '🔍', label: 'Google', url: 'https://www.google.com' },
+  { icon: '📺', label: 'YouTube', url: 'https://www.youtube.com' },
+  { icon: '📰', label: 'Hacker News', url: 'https://news.ycombinator.com' },
+  { icon: '🐙', label: 'GitHub', url: 'https://github.com' },
+  { icon: '📖', label: 'Wikipedia', url: 'https://en.wikipedia.org' },
+  { icon: '🎮', label: 'Reddit', url: 'https://www.reddit.com' },
+];
+
+function newTab(url) {
+  const id = ++tabCounter;
+  const tab = { id, url: url || null, title: 'New Tab', history: [], histIdx: -1, loading: false };
+  tabs.push(tab);
+  activeTab = tab;
+  renderTabs();
+  if (url) {
+    loadUrl(tab, url);
+  } else {
+    showNewTab(tab);
+  }
+}
+
+function closeTab(id, e) {
+  if (e) e.stopPropagation();
+  const idx = tabs.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  tabs.splice(idx, 1);
+  if (activeTab && activeTab.id === id) {
+    activeTab = tabs.length > 0 ? tabs[Math.max(0, idx - 1)] : null;
+  }
+  if (tabs.length === 0) newTab();
+  renderTabs();
+  renderContent();
+}
+
+function switchTab(id) {
+  activeTab = tabs.find(t => t.id === id);
+  renderTabs();
+  renderContent();
+  updateAddrBar();
+  updateNavButtons();
+}
+
+function renderTabs() {
+  const bar = document.getElementById('tabbar');
+  bar.innerHTML = '<button class="newtab-btn" onclick="newTab()">+</button>';
+  tabs.forEach(tab => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (activeTab && activeTab.id === tab.id ? ' active' : '');
+    el.onclick = () => switchTab(tab.id);
+    el.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis">${tab.title}</span><span class="close" onclick="closeTab(${tab.id}, event)">×</span>`;
+    bar.insertBefore(el, bar.lastChild);
+  });
+}
+
+function updateAddrBar() {
+  const input = document.getElementById('addrInput');
+  if (activeTab && activeTab.url) {
+    try {
+      const u = new URL(activeTab.url);
+      input.value = u.href;
+    } catch {
+      input.value = activeTab.url;
+    }
+  } else {
+    input.value = '';
+  }
+}
+
+function updateNavButtons() {
+  if (!activeTab) return;
+  document.getElementById('backBtn').disabled = activeTab.histIdx <= 0;
+  document.getElementById('fwdBtn').disabled = activeTab.histIdx >= activeTab.history.length - 1;
+}
+
+function showNewTab(tab) {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="newtab"><h1>CF Browser</h1><p>Enter a URL or click a shortcut</p><div class="shortcuts">' +
+    SHORTCUTS.map(s => `<div class="shortcut" onclick="navigateTo('${s.url}')"><div class="icon">${s.icon}</div><div class="label">${s.label}</div></div>`).join('') +
+    '</div></div>';
+  document.getElementById('statusbar').textContent = 'New Tab';
+}
+
+function showLoading() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+}
+
+function showError(url, msg) {
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="error-page"><h2>⚠️ Can't load this page</h2><div class="url">${url}</div><div>${msg}</div><div style="margin-top:12px;font-size:12px;color:#555">Some sites block proxying or require JavaScript that doesn't work through a proxy.</div></div>`;
+}
+
+function loadUrl(tab, url) {
+  if (!url) return;
+  // Normalize URL
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    if (url.includes('.') && !url.includes(' ')) {
+      url = 'https://' + url;
+    } else {
+      url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+    }
+  }
+
+  tab.url = url;
+  tab.loading = true;
+  tab.title = 'Loading...';
+  renderTabs();
+  showLoading();
+  document.getElementById('statusbar').textContent = 'Loading ' + url + '...';
+
+  // Add to history
+  if (tab.histIdx < tab.history.length - 1) {
+    tab.history = tab.history.slice(0, tab.histIdx + 1);
+  }
+  tab.history.push(url);
+  tab.histIdx = tab.history.length - 1;
+  updateNavButtons();
+
+  const proxyUrl = PROXY + encodeURIComponent(url);
+  const iframe = document.createElement('iframe');
+  iframe.className = 'webview';
+  iframe.src = proxyUrl;
+  iframe.onload = () => {
+    tab.loading = false;
+    // Try to get title from iframe (will fail for cross-origin, but try)
+    try {
+      const t = iframe.contentDocument?.title;
+      if (t) tab.title = t;
+    } catch {}
+    renderTabs();
+    document.getElementById('statusbar').textContent = 'Done';
+  };
+  iframe.onerror = () => {
+    tab.loading = false;
+    showError(url, 'Failed to load');
+    renderTabs();
+  };
+
+  // Replace content with iframe
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  content.appendChild(iframe);
+
+  // Listen for navigation messages from the iframe
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'navigate' && activeTab && activeTab.id === tab.id) {
+      loadUrl(tab, decodeURIComponent(e.data.url.replace(PROXY, '')));
+    }
+  });
+}
+
+function navigate() {
+  const input = document.getElementById('addrInput');
+  const url = input.value.trim();
+  if (!url || !activeTab) return;
+  loadUrl(activeTab, url);
+}
+
+function navigateTo(url) {
+  if (!activeTab) newTab(url);
+  else loadUrl(activeTab, url);
+}
+
+function goBack() {
+  if (!activeTab || activeTab.histIdx <= 0) return;
+  activeTab.histIdx--;
+  const url = activeTab.history[activeTab.histIdx];
+  activeTab.url = url;
+  loadUrlWithoutHistory(activeTab, url);
+}
+
+function goForward() {
+  if (!activeTab || activeTab.histIdx >= activeTab.history.length - 1) return;
+  activeTab.histIdx++;
+  const url = activeTab.history[activeTab.histIdx];
+  activeTab.url = url;
+  loadUrlWithoutHistory(activeTab, url);
+}
+
+function loadUrlWithoutHistory(tab, url) {
+  tab.loading = true;
+  tab.title = 'Loading...';
+  renderTabs();
+  showLoading();
+  const proxyUrl = PROXY + encodeURIComponent(url);
+  const iframe = document.createElement('iframe');
+  iframe.className = 'webview';
+  iframe.src = proxyUrl;
+  iframe.onload = () => {
+    tab.loading = false;
+    renderTabs();
+    document.getElementById('statusbar').textContent = 'Done';
+  };
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  content.appendChild(iframe);
+  updateAddrBar();
+  updateNavButtons();
+}
+
+function reload() {
+  if (activeTab && activeTab.url) {
+    loadUrl(activeTab, activeTab.url);
+  }
+}
+
+// Initialize
+newTab();
+</script>
+</body>
+</html>

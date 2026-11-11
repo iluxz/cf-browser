@@ -1,0 +1,9 @@
+{
+  "name": "cf-browser",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev public --compatibility-date 2025-01-01",
+    "deploy": "wrangler pages deploy public"
+  }
+}
