@@ -32,26 +32,48 @@ export async function onRequest(context) {
 
   try {
     const cookieHeader = request.headers.get('Cookie') || '';
-    const resp = await fetch(targetUrl.toString(), {
-      method: request.method,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        ...(cookieHeader ? { 'Cookie': cookieHeader } : {}),
-      },
-      redirect: 'follow',
-    });
+    let currentUrl = targetUrl.toString();
+    let resp;
+    let allCookies = [];
+    let redirects = 0;
+    // Follow redirects manually so we can capture Set-Cookie from each hop
+    while (redirects < 10) {
+      resp = await fetch(currentUrl, {
+        method: request.method,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          ...(cookieHeader ? { 'Cookie': cookieHeader } : {}),
+        },
+        redirect: 'manual',
+      });
+      const sc = (typeof resp.headers.getSetCookie === 'function')
+        ? resp.headers.getSetCookie()
+        : (resp.headers.get('set-cookie') ? [resp.headers.get('set-cookie')] : []);
+allCookies = allCookies.concat(sc.map(c => {
+  let cleaned = c.replace(/;\s*Domain=[^;]*/gi, '').replace(/;\s*Secure/gi, '');
+  // ensure path is root so cookies work across the proxy
+  if (!/;\s*Path=/i.test(cleaned)) cleaned += '; Path=/';
+  else cleaned = cleaned.replace(/;\s*Path=[^;]*/gi, '; Path=/');
+  return cleaned;
+}));
+      if (resp.status >= 300 && resp.status < 400) {
+        const loc = resp.headers.get('location');
+        if (loc) {
+          currentUrl = new URL(loc, currentUrl).toString();
+          redirects++;
+          continue;
+        }
+      }
+      break;
+    }
 
     const contentType = resp.headers.get('content-type') || '';
     const isHtml = contentType.includes('text/html');
 
     // Forward Set-Cookie headers (strip Domain so cookies bind to the proxy origin)
-    const setCookies = (typeof resp.headers.getSetCookie === 'function')
-      ? resp.headers.getSetCookie()
-      : (resp.headers.get('set-cookie') ? [resp.headers.get('set-cookie')] : []);
-    const cleanCookies = setCookies.map(c => c.replace(/;\s*Domain=[^;]*/gi, '').replace(/;\s*Secure/gi, ''));
-
+    // allCookies already collected from all redirect hops (see redirect loop above)
     if (!isHtml) {
       // Pass through non-HTML (images, css, js) with CORS headers
       const body = await resp.arrayBuffer();
@@ -59,7 +81,7 @@ export async function onRequest(context) {
         'Content-Type': contentType,
         'Access-Control-Allow-Origin': '*',
       };
-      if (cleanCookies.length) h['Set-Cookie'] = cleanCookies;
+      if (allCookies.length) h['Set-Cookie'] = allCookies;
       return new Response(body, { status: resp.status, headers: h });
     }
 
@@ -350,7 +372,7 @@ export async function onRequest(context) {
       'Content-Type': 'text/html; charset=utf-8',
       'Access-Control-Allow-Origin': '*',
     };
-    if (cleanCookies.length) htmlHeaders['Set-Cookie'] = cleanCookies;
+    if (allCookies.length) htmlHeaders['Set-Cookie'] = allCookies;
     return new Response(html, {
       status: resp.status,
       headers: htmlHeaders,
