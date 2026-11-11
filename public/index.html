@@ -518,6 +518,7 @@ const SHORTCUTS = [
   { icon: '🔍', label: 'Search', cfb: 'search' },
   { icon: '📰', label: 'News', cfb: 'news' },
   { icon: '📋', label: 'Sites', cfb: 'websites' },
+  { icon: '📝', label: 'Updates', cfb: 'updates' },
   { icon: '📖', label: 'Wikipedia', url: 'https://en.wikipedia.org' },
 ];
 
@@ -1000,6 +1001,26 @@ function showCfbPage(tab, page) {
         '<div class="item"><div><div class="title">Lobsters</div><div class="url">lobste.rs</div></div><button onclick="loadUrl(activeTab,\'https://lobste.rs\')">Open</button></div>' +
         '</div>';
       break;
+    case 'updates':
+      html = '<div class="cfb-page"><h1>Update Log</h1>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:16px;">what changed in cf-browser.</p>' +
+        '<div style="border-left:2px solid var(--accent);padding-left:14px;margin-bottom:16px;">' +
+        '<div style="font-weight:600;color:var(--accent);font-size:12px;">v1.2 — ui rework + polish</div>' +
+        '<div style="color:var(--text2);font-size:12px;margin-top:4px;">modern dark theme with css variables, 5 color themes (dark/light/midnight/forest/sunset), glassmorphism, better tabs, custom scrollbars, smoother transitions. theme picker in settings.</div></div>' +
+        '<div style="border-left:2px solid var(--border2);padding-left:14px;margin-bottom:16px;">' +
+        '<div style="font-weight:600;color:var(--text2);font-size:12px;">v1.1 — multiplayer presence</div>' +
+        '<div style="color:var(--text3);font-size:12px;margin-top:4px;">live cursors, click ripples, scroll sync, nav sync modes (off/host/all), follow toggle, cursors toggle, draggable chat, shared wordle (guesses sync), webrtc screen sharing, auto-sync form inputs + dom snapshots.</div></div>' +
+        '<div style="border-left:2px solid var(--border2);padding-left:14px;margin-bottom:16px;">' +
+        '<div style="font-weight:600;color:var(--text2);font-size:12px;">v1.0 — core browser</div>' +
+        '<div style="color:var(--text3);font-size:12px;margin-top:4px;">tabs, address bar, history, bookmarks, settings, find in page, zoom, tab pinning, view source, right-click menu, downloads, cookie manager. per-tab persistent views so switching never reloads.</div></div>' +
+        '<div style="border-left:2px solid var(--border2);padding-left:14px;margin-bottom:16px;">' +
+        '<div style="font-weight:600;color:var(--text2);font-size:12px;">proxy fixes</div>' +
+        '<div style="color:var(--text3);font-size:12px;margin-top:4px;">fixed blank pages (rendercontent was undefined), youtube securityerror (relative proxy url), loading stuck forever (15s watchdog), captcha/bot wall detection with explanation bar, bing search form interception, subresource url rewriting for js apps.</div></div>' +
+        '<div style="border-left:2px solid var(--border2);padding-left:14px;margin-bottom:16px;">' +
+        '<div style="font-weight:600;color:var(--text2);font-size:12px;">cfb:: pages</div>' +
+        '<div style="color:var(--text3);font-size:12px;margin-top:4px;">wordle (daily + practice, share, stats), tic-tac-toe, search (fetches bing results inline), news (working publishers), websites (tested site list), settings, cookies, bookmarks, history, about.</div></div>' +
+        '</div>';
+      break;
     case 'websites':
       html = '<div class="cfb-page"><h1>Sites that work</h1>' +
         '<p style="color:#888;font-size:12px;margin-bottom:14px;">tested against the live proxy. a site works if its html already contains the content.</p>' +
@@ -1043,12 +1064,12 @@ function showCfbPage(tab, page) {
       break;
     case 'about':
 html = '<div class="cfb-page"><div class="about"><div class="logo">🌐</div><h1>CF Browser</h1><p>Version 1.0</p><p>Powered by Cloudflare Pages + Workers</p><p style="margin-top:16px;color:#555;font-size:11px;">' +
-      ['settings','bookmarks','history','cookies','wordle','games','search','news','websites','about'].map(p =>
+      ['settings','bookmarks','history','cookies','wordle','games','search','news','websites','updates','about'].map(p =>
         '<span style="cursor:pointer;color:#7c5cff;" onclick="openCfb(\'' + p + '\')">' + p + '</span>').join(' · ') +
       '</p></div></div>';
       break;
     default:
-      html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, wordle, websites, about</p></div>';
+      html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, wordle, games, search, news, websites, updates, about</p></div>';
   }
   const view = tabView(tab);
   view.innerHTML = html;
