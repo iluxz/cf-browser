@@ -94,15 +94,26 @@ allCookies = allCookies.concat(sc.map(c => {
     // Rewrite subresource URLs (scripts, stylesheets, images, modules) so JS
     // apps load their assets through the proxy instead of fetching directly
     // from the origin (which gets CORS-blocked or fails).
+    const AD_DOMAINS = /doubleclick\.net|googlesyndication\.com|googleadservices\.com|googletagmanager\.com|google-analytics\.com|facebook\.com\/tr|analytics\.|ads\.|tracking\.|tracker\./i;
     const PROXY_PREFIX = url.origin + '/api/proxy?url=';
     function toProxy(u) {
       if (!u || u.startsWith('data:') || u.startsWith('blob:') || u.startsWith('javascript:') || u.startsWith('#') || u.startsWith('mailto:')) return u;
       try {
         const resolved = new URL(u, base).href;
+        if (AD_DOMAINS.test(resolved)) return null; // block ads
         if (resolved.startsWith(PROXY_PREFIX)) return u;
         return PROXY_PREFIX + encodeURIComponent(resolved);
       } catch { return u; }
     }
+    // Remove script/link tags pointing to ad domains entirely
+    html = html.replace(/<script[^>]*src=["']([^"']+)["'][^>]*><\/script>/gi, function(m, src) {
+      try { if (AD_DOMAINS.test(new URL(src, base).href)) return ''; } catch {}
+      return m;
+    });
+    html = html.replace(/<link[^>]*href=["']([^"']+)["'][^>]*>/gi, function(m, href) {
+      try { if (AD_DOMAINS.test(new URL(href, base).href)) return ''; } catch {}
+      return m;
+    });
     html = html.replace(/(src|href)\s*=\s*"([^"]*)"/gi, function(m, attr, val) {
       const nu = toProxy(val);
       return nu === val ? m : attr + '="' + nu + '"';

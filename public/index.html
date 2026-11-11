@@ -1080,6 +1080,39 @@ function showCfbPage(tab, page) {
         '<div style="color:var(--text3);font-size:12px;margin-top:4px;">wordle (daily + practice, share, stats), tic-tac-toe, search (fetches bing results inline), news (working publishers), websites (tested site list), settings, cookies, bookmarks, history, about.</div></div>' +
         '</div>';
       break;
+    case 'reader':
+      html = '<div class="cfb-page"><h1>Reader Mode</h1>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:14px;">paste a url to read just the article text, no ads or clutter.</p>' +
+        '<div style="display:flex;gap:8px;margin-bottom:16px;">' +
+        '<input id="readerUrl" type="text" placeholder="https://..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:13px;" onkeydown="cfbReaderKey(event)">' +
+        '<button onclick="cfbReader()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Read</button>' +
+        '</div>' +
+        '<div id="readerContent" style="line-height:1.7;color:var(--text2);font-size:14px;"></div>' +
+        '</div>';
+      break;
+    case 'calc':
+      html = '<div class="cfb-page"><h1>Calculator</h1>' +
+        '<div style="max-width:280px;margin:0 auto;">' +
+        '<input id="calcDisplay" readonly style="width:100%;padding:12px;font-size:24px;text-align:right;border-radius:8px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;margin-bottom:8px;font-family:monospace;">' +
+        '<div id="calcKeys" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>' +
+        '</div>' +
+        '</div>';
+      break;
+    case 'notes':
+      html = '<div class="cfb-page"><h1>Notes</h1>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:12px;">saved locally in your browser.</p>' +
+        '<textarea id="notesArea" style="width:100%;height:60vh;padding:12px;border-radius:8px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:13px;resize:vertical;font-family:inherit;" oninput="cfbSaveNotes()"></textarea>' +
+        '</div>';
+      break;
+    case 'terminal':
+      html = '<div class="cfb-page"><h1>Terminal</h1>' +
+        '<div id="termOutput" style="background:#0a0a14;color:#4ade80;font-family:monospace;font-size:12px;padding:12px;border-radius:8px;height:50vh;overflow:auto;margin-bottom:8px;white-space:pre-wrap;"></div>' +
+        '<div style="display:flex;gap:8px;">' +
+        '<span style="color:#4ade80;font-family:monospace;font-size:12px;line-height:28px;">$</span>' +
+        '<input id="termInput" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#4ade80;font-size:12px;font-family:monospace;" onkeydown="cfbTermKey(event)">' +
+        '</div>' +
+        '</div>';
+      break;
     case 'websites':
       html = '<div class="cfb-page"><h1>Sites that work</h1>' +
         '<p style="color:#888;font-size:12px;margin-bottom:14px;">tested against the live proxy. a site works if its html already contains the content.</p>' +
@@ -1135,6 +1168,9 @@ html = '<div class="cfb-page"><div class="about"><div class="logo">🌐</div><h1
   if (page === 'wordle') wdlInit();
   if (page === 'tictactoe') { tttState = { board: Array(9).fill(''), turn: 'X', mode: tttState.mode || 'pvp', over: false, winner: null }; setTimeout(tttRender, 0); }
   if (page === 'cookies') setTimeout(cfbRenderCookies, 0);
+  if (page === 'calc') setTimeout(cfbInitCalc, 0);
+  if (page === 'notes') setTimeout(cfbLoadNotes, 0);
+  if (page === 'terminal') setTimeout(() => cfbTermPrint('cf-browser terminal v1.0\ntype \'help\' for commands.'), 0);
   tab.frame = null;
   tab.loading = false;
   clearProxyHint();
@@ -1283,6 +1319,174 @@ const _origShowCfbPageTTT = showCfbPage;
 function openCfb(page) {
   if (!activeTab) newTab();
   loadUrl(activeTab, 'cfb::' + page);
+}
+
+// ===== READER MODE =====
+function cfbReaderKey(e) { if (e.key === 'Enter') cfbReader(); }
+
+function cfbReaderKey(e) { if (e.key === 'Enter') cfbReader(); }
+
+async function cfbReader() {
+  const inp = document.getElementById('readerUrl');
+  const out = document.getElementById('readerContent');
+  if (!inp || !out) return;
+  const url = inp.value.trim();
+  if (!url) return;
+  out.innerHTML = '<p style="color:#888;">loading...</p>';
+  try {
+    const r = await fetch('/api/proxy?url=' + encodeURIComponent(url));
+    const html = await r.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    // try article, main, or body
+    const article = doc.querySelector('article') || doc.querySelector('main') || doc.querySelector('[role="main"]') || doc.body;
+    // extract text from paragraphs
+    const paras = article.querySelectorAll('p, h1, h2, h3, h4, li');
+    let text = '';
+    paras.forEach(p => {
+      const t = p.textContent.trim();
+      if (t.length > 20) text += '<p>' + escapeHtml(t) + '</p>';
+    });
+    if (!text) text = '<p style="color:#888;">could not extract article text. try opening the page directly.</p>';
+    // get title
+    const title = doc.querySelector('title');
+    const h = title ? '<h2 style="color:var(--text);margin-bottom:12px;">' + escapeHtml(title.textContent) + '</h2>' : '';
+    out.innerHTML = h + text;
+  } catch (e) {
+    out.innerHTML = '<p style="color:#e2685f;">failed: ' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+// ===== CALCULATOR =====
+function cfbInitCalc() {
+  const display = document.getElementById('calcDisplay');
+  const keys = document.getElementById('calcKeys');
+  if (!display || !keys) return;
+  const layout = ['C','⌫','%', '÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','='];
+  keys.innerHTML = '';
+  layout.forEach(k => {
+    const btn = document.createElement('button');
+    btn.textContent = k;
+    btn.style.cssText = 'padding:12px;border-radius:6px;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;';
+    if (k === '=') { btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; }
+    else if (['C','⌫','%','÷','×','−','+'].includes(k)) { btn.style.background = 'var(--surface2)'; btn.style.color = 'var(--text)'; }
+    else { btn.style.background = 'var(--bg3)'; btn.style.color = 'var(--text)'; }
+    btn.onclick = () => cfbCalcKey(k, display);
+    keys.appendChild(btn);
+  });
+}
+
+function cfbCalcKey(k, display) {
+  if (!display) display = document.getElementById('calcDisplay');
+  if (!display) return;
+  if (k === 'C') { display.value = ''; return; }
+  if (k === '⌫') { display.value = display.value.slice(0, -1); return; }
+  if (k === '=') {
+    try {
+      const expr = display.value.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+      display.value = String(Function('"use strict"; return (' + expr + ')')());
+    } catch { display.value = 'Error'; }
+    return;
+  }
+  display.value += k;
+}
+
+// ===== NOTES =====
+function cfbLoadNotes() {
+  const el = document.getElementById('notesArea');
+  if (!el) return;
+  try { el.value = localStorage.getItem('cfb_notes') || ''; } catch {}
+}
+
+function cfbSaveNotes() {
+  const el = document.getElementById('notesArea');
+  if (!el) return;
+  try { localStorage.setItem('cfb_notes', el.value); } catch {}
+}
+
+// ===== TERMINAL =====
+function cfbTermPrint(text) {
+  const out = document.getElementById('termOutput');
+  if (!out) return;
+  out.textContent += text + '\n';
+  out.scrollTop = out.scrollHeight;
+}
+
+function cfbTermKey(e) { if (e.key === 'Enter') cfbTerm(); }
+
+function cfbTerm() {
+  const inp = document.getElementById('termInput');
+  const out = document.getElementById('termOutput');
+  if (!inp || !out) return;
+  const cmd = inp.value.trim();
+  inp.value = '';
+  cfbTermPrint('$ ' + cmd);
+  const parts = cmd.split(/\s+/);
+  const c = parts[0].toLowerCase();
+  const args = parts.slice(1);
+  switch (c) {
+    case '': break;
+    case 'help':
+      cfbTermPrint('commands: help, clear, date, echo, calc, ls, about, theme');
+      break;
+    case 'clear':
+      out.textContent = '';
+      break;
+    case 'date':
+      cfbTermPrint(new Date().toString());
+      break;
+    case 'echo':
+      cfbTermPrint(args.join(' '));
+      break;
+    case 'calc':
+      try {
+        const expr = args.join(' ').replace(/×/g, '*').replace(/÷/g, '/');
+        cfbTermPrint(String(Function('"use strict"; return (' + expr + ')')()));
+      } catch { cfbTermPrint('error'); }
+      break;
+    case 'about':
+      cfbTermPrint('cf-browser terminal v1.0\\npowered by cf-browser');
+      break;
+    case 'ls':
+      cfbTermPrint('notes.txt  readme.md  (virtual)');
+      break;
+    case 'theme':
+      if (args[0]) {
+        try { localStorage.setItem('cfb_theme', args[0]); cfbApplyTheme(); cfbTermPrint('theme set to ' + args[0]); } catch { cfbTermPrint('error'); }
+      } else {
+        cfbTermPrint('usage: theme <dark|light|midnight|forest|sunset>');
+      }
+      break;
+    default:
+      cfbTermPrint('command not found: ' + c);
+  }
+}
+
+// ===== READER MODE =====
+async function cfbReader() {
+  const inp = document.getElementById('readerUrl');
+  const out = document.getElementById('readerContent');
+  if (!inp || !out) return;
+  const url = inp.value.trim();
+  if (!url) return;
+  out.innerHTML = '<p style="color:#888;">loading...</p>';
+  try {
+    const r = await fetch('/api/proxy?url=' + encodeURIComponent(url));
+    const html = await r.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const article = doc.querySelector('article') || doc.querySelector('main') || doc.querySelector('[role="main"]') || doc.body;
+    const paras = article.querySelectorAll('p, h1, h2, h3, h4, li');
+    let text = '';
+    paras.forEach(p => {
+      const t = p.textContent.trim();
+      if (t.length > 20) text += '<p>' + escapeHtml(t) + '</p>';
+    });
+    if (!text) text = '<p style="color:#888;">could not extract article text. try opening the page directly.</p>';
+    const title = doc.querySelector('title');
+    const h = title ? '<h2 style="color:var(--text);margin-bottom:12px;">' + escapeHtml(title.textContent) + '</h2>' : '';
+    out.innerHTML = h + text;
+  } catch (e) {
+    out.innerHTML = '<p style="color:#e2685f;">failed: ' + escapeHtml(e.message) + '</p>';
+  }
 }
 
 // ===== WORDLE =====
@@ -1733,8 +1937,32 @@ function reload() {
   }
 }
 
-// Initialize
-newTab();
+// Save session before unload
+window.addEventListener('beforeunload', () => {
+  try {
+    const session = tabs.map(t => ({ url: t.url, title: t.title, pinned: t.pinned })).filter(t => t.url);
+    localStorage.setItem('cfb_session', JSON.stringify(session));
+  } catch {}
+});
+
+// Restore session on load
+(function restoreSession() {
+  try {
+    const raw = localStorage.getItem('cfb_session');
+    if (!raw) return;
+    const session = JSON.parse(raw);
+    if (!Array.isArray(session) || !session.length) return;
+    // close the default new tab
+    if (tabs.length === 1 && !tabs[0].url) { tabs.splice(0, 1); }
+    session.forEach(s => {
+      if (!s.url) return;
+      const id = ++tabCounter;
+      const tab = { id, url: s.url, title: s.title || 'Loading...', history: [s.url], histIdx: 0, loading: false, pinned: !!s.pinned, zoom: 1, view: null, frame: null };
+      tabs.push(tab);
+    });
+    if (tabs.length) { activeTab = tabs[0]; renderTabs(); if (activeTab.url) loadUrl(activeTab, activeTab.url); }
+  } catch {}
+})();
 
 // ===== BOOKMARKS =====
 let bookmarks = [];
