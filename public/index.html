@@ -739,7 +739,7 @@ window.addEventListener('message', (e) => {
     if (!frame || !frame.isConnected) return;
     let visibleText = '';
     try { visibleText = (frame.contentDocument.body.innerText || '').trim(); } catch { return; }
-    if (visibleText.length > 40) return; // page still has content, don't nag
+    if (visibleText.length > 120) return; // page still has content, the error is non-fatal
     const msg = String(data.message || 'script error').replace(/^Uncaught\s+/i, '').slice(0, 120);
     showProxyHint(tab.url, 'this page crashed inside the proxy: ' + msg);
   }
