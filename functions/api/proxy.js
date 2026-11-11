@@ -89,14 +89,92 @@ export async function onRequest(context) {
     }
   }, true);
   // Rewrite form submissions
+  function handleFormSubmit(form) {
+    if (!form) return;
+    let action = form.action || window.location.href;
+    const method = (form.method || 'get').toLowerCase();
+    if (method === 'get') {
+      try {
+        const u = new URL(action, window.location.href);
+        const fd = new FormData(form);
+        for (const [k, v] of fd.entries()) {
+          if (v !== null && v !== undefined) u.searchParams.set(k, v);
+        }
+        action = u.toString();
+      } catch (err) {}
+    }
+    const newUrl = rewriteUrl(action);
+    window.parent.postMessage({ type: 'navigate', url: newUrl }, '*');
+  }
+  // Let the page's own JS drive navigation (bing etc. use location.href), but
+  // route it through the parent so it stays inside the proxy.
+  try {
+    const origAssign = window.location.assign.bind(window.location);
+    const origReplace = window.location.replace.bind(window.location);
+    window.location.assign = function(u) { window.parent.postMessage({ type: 'navigate', url: rewriteUrl(String(u)) }, '*'); };
+    window.location.replace = function(u) { window.parent.postMessage({ type: 'navigate', url: rewriteUrl(String(u)) }, '*'); };
+  } catch (e) {}
+  try {
+    // location.href setter
+    const loc = window.location;
+    // can't redefine location.href easily; instead poll is not great. Use a MutationObserver? 
+    // Fallback: keep form submit interception as a safety net.
+  } catch (e) {}
+  // Intercept clicks on submit buttons in capture phase, before page JS can mutate form fields
+  document.addEventListener('click', function(e) {
+    const t = e.target;
+    if (!t) return;
+    const btn = t.closest ? t.closest('button, input[type="submit"], input[type="image"]') : null;
+    if (!btn) return;
+    const form = btn.form || (btn.closest ? btn.closest('form') : null);
+    if (!form) return;
+    if (btn.tagName === 'BUTTON' && btn.getAttribute('type') && btn.getAttribute('type').toLowerCase() !== 'submit') return;
+    if (btn.tagName === 'INPUT' && btn.type !== 'submit' && btn.type !== 'image') return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    let action = form.action || window.location.href;
+    const method = (form.method || 'get').toLowerCase();
+    if (method === 'get') {
+      try {
+        const u = new URL(action, window.location.href);
+        const fields = form.querySelectorAll('input, select, textarea');
+        fields.forEach(function(el) {
+          if (!el.name) return;
+          if (el.type === 'checkbox' || el.type === 'radio') {
+            if (el.checked) u.searchParams.set(el.name, el.value);
+          } else if (el.type !== 'submit' && el.type !== 'button' && el.type !== 'image' && el.type !== 'reset' && el.type !== 'file') {
+            const lname = (el.name || '').toLowerCase();
+            let val = el.value;
+            if ((lname === 'q' || lname.indexOf('search') !== -1 || lname.indexOf('query') !== -1) && mpLastSearchValue) {
+              val = mpLastSearchValue;
+            }
+            u.searchParams.set(el.name, val);
+          }
+        });
+        action = u.toString();
+      } catch (err) {}
+    }
+    const newUrl = rewriteUrl(action);
+    window.parent.postMessage({ type: 'navigate', url: newUrl }, '*');
+  }, true);
+
   document.addEventListener('submit', function(e) {
     const form = e.target;
-    if (form.action) {
-      e.preventDefault();
-      const newUrl = rewriteUrl(form.action);
-      window.parent.postMessage({ type: 'navigate', url: newUrl }, '*');
-    }
+    if (!form) return;
+    e.preventDefault();
+    e.stopPropagation();
+    handleFormSubmit(form);
   }, true);
+  try {
+    const origSubmit = HTMLFormElement.prototype.submit;
+    HTMLFormElement.prototype.submit = function() { handleFormSubmit(this); };
+  } catch (e) {}
+  // Intercept link clicks (already there) but NOT submit buttons, so page JS can run first.
+  // Override window.open
+  const origOpen = window.open;
+  window.open = function(u) { window.parent.postMessage({ type: 'navigate', url: rewriteUrl(String(u)) }, '*'); return null; };
   // Relay cursor position so peers can see it even over this page
   var lastCursor = 0;
   window.addEventListener('mousemove', function(e) {
@@ -119,6 +197,35 @@ export async function onRequest(context) {
       }, '*');
     } catch (err) {}
   }, true);
+  // Track the last real value typed into search-like inputs. Bing etc. overwrite
+  // the field with "javascript:void(0)" on submit, so we capture it earlier.
+  var mpLastSearchValue = '';
+  try {
+    const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    const origSet = desc.set;
+    const origGet = desc.get;
+    Object.defineProperty(HTMLInputElement.prototype, 'value', {
+      get: function() { return origGet.call(this); },
+      set: function(v) {
+        const name = (this.name || this.id || '').toLowerCase();
+        if (name.indexOf('q') !== -1 || name.indexOf('search') !== -1 || name.indexOf('query') !== -1) {
+          if (v && v !== 'javascript:void(0)' && String(v).trim().length > 0) {
+            mpLastSearchValue = String(v);
+          }
+        }
+        origSet.call(this, v);
+      }
+    });
+  } catch (e) {}
+  document.addEventListener('input', function(e) {
+    const t = e.target;
+    if (!t) return;
+    const name = (t.name || t.id || '').toLowerCase();
+    if (name.indexOf('q') !== -1 || name.indexOf('search') !== -1 || name.indexOf('query') !== -1) {
+      if (t.value && t.value !== 'javascript:void(0)') mpLastSearchValue = t.value;
+    }
+  }, true);
+
   // Relay form input changes so peers see typing, toggles, and selections
   function mpInputIndex(el) {
     const all = Array.from(document.querySelectorAll('input, textarea, select'));
