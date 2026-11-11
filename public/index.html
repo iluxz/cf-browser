@@ -2128,19 +2128,23 @@ window.addEventListener('beforeunload', () => {
 (function restoreSession() {
   try {
     const raw = localStorage.getItem('cfb_session');
-    if (!raw) return;
-    const session = JSON.parse(raw);
-    if (!Array.isArray(session) || !session.length) return;
-    // close the default new tab
-    if (tabs.length === 1 && !tabs[0].url) { tabs.splice(0, 1); }
-    session.forEach(s => {
-      if (!s.url) return;
-      const id = ++tabCounter;
-      const tab = { id, url: s.url, title: s.title || 'Loading...', history: [s.url], histIdx: 0, loading: false, pinned: !!s.pinned, zoom: 1, view: null, frame: null };
-      tabs.push(tab);
-    });
-    if (tabs.length) { activeTab = tabs[0]; renderTabs(); if (activeTab.url) loadUrl(activeTab, activeTab.url); }
+    if (raw) {
+      const session = JSON.parse(raw);
+      if (Array.isArray(session) && session.length) {
+        if (tabs.length === 1 && !tabs[0].url) { tabs.splice(0, 1); }
+        session.forEach(s => {
+          if (!s.url) return;
+          const id = ++tabCounter;
+          const tab = { id, url: s.url, title: s.title || 'Loading...', history: [s.url], histIdx: 0, loading: false, pinned: !!s.pinned, zoom: 1, view: null, frame: null };
+          tabs.push(tab);
+        });
+        if (tabs.length) { activeTab = tabs[0]; renderTabs(); if (activeTab.url) loadUrl(activeTab, activeTab.url); }
+        return;
+      }
+    }
   } catch {}
+  // no saved session — open a new tab
+  newTab();
 })();
 
 // ===== BOOKMARKS =====
