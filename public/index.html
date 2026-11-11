@@ -71,6 +71,19 @@
   .webview {
     width: 100%; height: 100%; border: none; background: #fff;
   }
+  .tabview { position: absolute; inset: 0; }
+  .tabview[hidden] { display: none; }
+  .proxy-hint {
+    position: fixed; bottom: 42px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; z-index: 45;
+    background: #1a1a2e; border: 1px solid #4a3a6e; border-radius: 10px;
+    padding: 9px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    font-size: 12px; color: #b9b9d4; max-width: min(680px, 92vw);
+  }
+  .proxy-hint button { background: #7c5cff; color: #fff; border: none; border-radius: 6px; padding: 5px 10px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+  .proxy-hint button:hover { background: #6a4bef; }
+  .proxy-hint button.ghost { background: transparent; color: #7a7a99; }
+  .proxy-hint button.ghost:hover { background: #262640; color: #b9b9d4; }
   .loading {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; background: #1a1a2e; color: #aaa;
@@ -282,7 +295,7 @@ const SHORTCUTS = [
 
 function newTab(url) {
   const id = ++tabCounter;
-  const tab = { id, url: url || null, title: 'New Tab', history: [], histIdx: -1, loading: false, pinned: false, zoom: 1 };
+  const tab = { id, url: url || null, title: 'New Tab', history: [], histIdx: -1, loading: false, pinned: false, zoom: 1, view: null, frame: null };
   tabs.push(tab);
   activeTab = tab;
   renderTabs();
@@ -298,6 +311,7 @@ function closeTab(id, e) {
   const idx = tabs.findIndex(t => t.id === id);
   if (idx === -1) return;
   if (tabs[idx].pinned) { tabs[idx].pinned = false; renderTabs(); return; }
+  disposeView(tabs[idx]);
   tabs.splice(idx, 1);
   if (activeTab && activeTab.id === id) {
     activeTab = tabs.length > 0 ? tabs[Math.max(0, idx - 1)] : null;
@@ -305,12 +319,16 @@ function closeTab(id, e) {
   if (tabs.length === 0) newTab();
   renderTabs();
   renderContent();
+  updateAddrBar();
+  updateNavButtons();
+  updateStarBtn();
 }
 
 function switchTab(id) {
   activeTab = tabs.find(t => t.id === id);
   renderTabs();
   renderContent();
+  clearProxyHint();
   updateAddrBar();
   updateNavButtons();
   applyZoom();
@@ -349,22 +367,173 @@ function updateNavButtons() {
   document.getElementById('fwdBtn').disabled = activeTab.histIdx >= activeTab.history.length - 1;
 }
 
-function showNewTab(tab) {
+// ===== TAB VIEWS =====
+// every tab keeps its own persistent view node, so switching tabs is instant and
+// never re-fetches the page (and never leaves you staring at a blank content area)
+function ensureView(tab) {
+  if (tab.view && tab.view.isConnected) return tab.view;
+  const view = document.createElement('div');
+  view.className = 'tabview';
+  tab.view = view;
+  document.getElementById('content').appendChild(view);
+  return view;
+}
+
+function showView(tab) {
   const content = document.getElementById('content');
-  content.innerHTML = '<div class="newtab"><h1>CF Browser</h1><p>Enter a URL or click a shortcut</p><div class="shortcuts">' +
+  if (!content) return;
+  Array.from(content.children).forEach(el => { el.hidden = !(tab && el === tab.view); });
+}
+
+function disposeView(tab) {
+  if (tab.view) { tab.view.remove(); tab.view = null; }
+  tab.frame = null;
+}
+
+function renderContent() { showView(activeTab); }
+
+function tabView(tab) {
+  const view = ensureView(tab);
+  showView(tab);
+  return view;
+}
+
+function setStatusText(text) {
+  const el = document.getElementById('statusbar');
+  if (el) el.textContent = text;
+}
+
+function hostLabel(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return String(url || ''); }
+}
+
+function cleanTitle(title, url) {
+  const t = String(title || '').replace(/\s+/g, ' ').trim();
+  if (!t || /^(loading\.\.\.|untitled|error|new tab)$/i.test(t)) return hostLabel(url);
+  return t.slice(0, 80);
+}
+
+function clearProxyHint() {
+  const el = document.getElementById('proxyHint');
+  if (el) el.remove();
+}
+
+function showProxyHint(url, reason) {
+  clearProxyHint();
+  const bar = document.createElement('div');
+  bar.id = 'proxyHint';
+  bar.className = 'proxy-hint';
+  const label = document.createElement('span');
+  label.textContent = reason
+    ? 'this page crashed inside the proxy: ' + reason
+    : 'this page came back blank — it probably needs javascript the proxy cannot run.';
+  const open = document.createElement('button');
+  open.textContent = 'open without proxy';
+  open.onclick = () => window.open(url, '_blank', 'noopener');
+  const close = document.createElement('button');
+  close.className = 'ghost';
+  close.textContent = 'dismiss';
+  close.onclick = clearProxyHint;
+  bar.append(label, open, close);
+  document.body.appendChild(bar);
+}
+
+function checkBlank(tab, frame, url) {
+  if (!tab || tab !== activeTab || tab.frame !== frame) return;
+  let empty = false;
+  try {
+    const doc = frame.contentDocument;
+    if (!doc || !doc.body) return;
+    const text = (doc.body.innerText || '').trim();
+    const media = Array.from(doc.querySelectorAll('img, video, canvas, svg, picture, iframe')).some(el => {
+      try {
+        const r = el.getBoundingClientRect();
+        return r.width > 40 && r.height > 40;
+      } catch { return false; }
+    });
+    empty = text.length === 0 && !media;
+  } catch { return; }
+  if (empty) showProxyHint(url);
+}
+
+function showNewTab(tab) {
+  const view = tabView(tab);
+  tab.frame = null;
+  tab.loading = false;
+  tab.title = 'New Tab';
+  clearProxyHint();
+  view.innerHTML = '<div class="newtab"><h1>CF Browser</h1><p>Enter a URL or click a shortcut</p><div class="shortcuts">' +
     SHORTCUTS.map(s => `<div class="shortcut" onclick="navigateTo('${s.url}')"><div class="icon">${s.icon}</div><div class="label">${s.label}</div></div>`).join('') +
     '</div></div>';
-  document.getElementById('statusbar').textContent = 'New Tab';
+  renderTabs();
+  updateAddrBar();
+  setStatusText('New Tab');
 }
 
 function showLoading() {
-  const content = document.getElementById('content');
-  content.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+  if (!activeTab) return;
+  const view = tabView(activeTab);
+  view.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
 }
 
 function showError(url, msg) {
-  const content = document.getElementById('content');
-  content.innerHTML = `<div class="error-page"><h2>⚠️ Can't load this page</h2><div class="url">${url}</div><div>${msg}</div><div style="margin-top:12px;font-size:12px;color:#555">Some sites block proxying or require JavaScript that doesn't work through a proxy.</div></div>`;
+  if (!activeTab) return;
+  const view = tabView(activeTab);
+  view.innerHTML = '<div class="error-page"><h2>⚠️ Can\'t load this page</h2><div class="url">' +
+    escapeHtml(url) + '</div><div>' + escapeHtml(msg) + '</div>' +
+    '<div style="margin-top:12px;font-size:12px;color:#555">some sites block proxying or need javascript that cannot run through a proxy.</div></div>';
+}
+
+function rawTarget(raw) {
+  let u = String(raw || '');
+  if (u.startsWith(PROXY)) u = u.slice(PROXY.length);
+  try { return decodeURIComponent(u); } catch { return u; }
+}
+
+function loadIntoFrame(tab, url) {
+  const view = tabView(tab);
+  view.innerHTML = '';
+  clearProxyHint();
+
+  const frame = document.createElement('iframe');
+  frame.className = 'webview';
+  frame.src = PROXY + encodeURIComponent(url);
+  tab.frame = frame;
+
+  let settled = false;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    tab.loading = false;
+    let title = '';
+    try { title = frame.contentDocument ? frame.contentDocument.title : ''; } catch {}
+    tab.title = cleanTitle(title, url);
+    renderTabs();
+    setStatusText('Done');
+    setTimeout(() => checkBlank(tab, frame, url), 1200);
+  };
+
+  frame.onload = finish;
+  frame.onerror = () => {
+    settled = true;
+    tab.loading = false;
+    tab.title = hostLabel(url);
+    renderTabs();
+    showError(url, 'the proxy could not reach that page');
+  };
+
+  view.appendChild(frame);
+  applyZoom();
+
+  // never sit on "Loading..." forever
+  setTimeout(() => {
+    if (settled) return;
+    settled = true;
+    tab.loading = false;
+    tab.title = cleanTitle('', url);
+    renderTabs();
+    setStatusText('still loading — the site may be blocking the proxy');
+  }, 15000);
 }
 
 function loadUrl(tab, url) {
@@ -374,16 +543,16 @@ function loadUrl(tab, url) {
     if (url.includes('.') && !url.includes(' ')) {
       url = 'https://' + url;
     } else {
-      url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+      // duckduckgo instead of google: google bans cloudflare worker IPs
+      url = 'https://duckduckgo.com/?q=' + encodeURIComponent(url);
     }
   }
 
   tab.url = url;
   tab.loading = true;
-  tab.title = 'Loading...';
+  tab.title = hostLabel(url);
   renderTabs();
-  showLoading();
-  document.getElementById('statusbar').textContent = 'Loading ' + url + '...';
+  setStatusText('Loading ' + url + '...');
 
   // Add to history
   if (tab.histIdx < tab.history.length - 1) {
@@ -392,47 +561,51 @@ function loadUrl(tab, url) {
   tab.history.push(url);
   tab.histIdx = tab.history.length - 1;
   updateNavButtons();
+  updateAddrBar();
+  updateStarBtn();
 
-  const proxyUrl = PROXY + encodeURIComponent(url);
-  const iframe = document.createElement('iframe');
-  iframe.className = 'webview';
-  iframe.src = proxyUrl;
-  iframe.onload = () => {
-    tab.loading = false;
-    // Try to get title from iframe (will fail for cross-origin, but try)
-    try {
-      const t = iframe.contentDocument?.title;
-      if (t) tab.title = t;
-    } catch {}
-    renderTabs();
-    document.getElementById('statusbar').textContent = 'Done';
-  };
-  iframe.onerror = () => {
-    tab.loading = false;
-    showError(url, 'Failed to load');
-    renderTabs();
-  };
-
-  // Replace content with iframe
-  const content = document.getElementById('content');
-  content.innerHTML = '';
-  content.appendChild(iframe);
-
-  // Listen for navigation + cursor messages from the iframe
-  window.addEventListener('message', (e) => {
-    if (!e.data || !activeTab || activeTab.id !== tab.id) return;
-    if (e.data.type === 'navigate') {
-      loadUrl(tab, decodeURIComponent(String(e.data.url).replace(PROXY, '')));
-      return;
-    }
-    if (e.data.type === 'cursor') {
-      const r = iframe.getBoundingClientRect();
-      const x = (r.left + e.data.x * r.width) / Math.max(1, window.innerWidth);
-      const y = (r.top + e.data.y * r.height) / Math.max(1, window.innerHeight);
-      mpSendCursor(x, y);
-    }
-  });
+  loadIntoFrame(tab, url);
 }
+
+// one listener for every proxied page (previously one got added per navigation and piled up)
+window.addEventListener('message', (e) => {
+  const data = e.data;
+  if (!data || typeof data !== 'object' || !data.type) return;
+  const tab = activeTab;
+  if (!tab) return;
+
+  if (data.type === 'navigate') {
+    const target = rawTarget(data.url);
+    if (target) loadUrl(tab, target);
+    return;
+  }
+
+  if (data.type === 'cursor') {
+    const frame = tab.frame;
+    if (!frame || !frame.isConnected) return;
+    const r = frame.getBoundingClientRect();
+    const x = (r.left + data.x * r.width) / Math.max(1, window.innerWidth);
+    const y = (r.top + data.y * r.height) / Math.max(1, window.innerHeight);
+    mpSendCursor(x, y);
+    return;
+  }
+
+  if (data.type === 'pageerror') {
+    const frame = tab.frame;
+    if (!frame || !frame.isConnected) return;
+    let visibleText = '';
+    try { visibleText = (frame.contentDocument.body.innerText || '').trim(); } catch { return; }
+    if (visibleText.length > 40) return; // page still has content, don't nag
+    const msg = String(data.message || 'script error').replace(/^Uncaught\s+/i, '').slice(0, 120);
+    showProxyHint(tab.url, msg);
+  }
+});
+
+// click on the page body clears the blank-page hint
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.closest && e.target.closest('.proxy-hint')) return;
+  clearProxyHint();
+}, true);
 
 function navigate() {
   const input = document.getElementById('addrInput');
@@ -483,8 +656,12 @@ function showCfbPage(tab, page) {
     default:
       html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, about</p></div>';
   }
-  content.innerHTML = html;
-  document.getElementById('statusbar').textContent = 'cfb::' + page;
+  const view = tabView(tab);
+  view.innerHTML = html;
+  tab.frame = null;
+  tab.loading = false;
+  clearProxyHint();
+  setStatusText('cfb::' + page);
 }
 
 function escapeHtml(text) {
@@ -517,24 +694,12 @@ function goForward() {
 
 function loadUrlWithoutHistory(tab, url) {
   tab.loading = true;
-  tab.title = 'Loading...';
+  tab.title = hostLabel(url);
   renderTabs();
-  showLoading();
-  const proxyUrl = PROXY + encodeURIComponent(url);
-  const iframe = document.createElement('iframe');
-  iframe.className = 'webview';
-  iframe.src = proxyUrl;
-  iframe.onload = () => {
-    tab.loading = false;
-    renderTabs();
-    document.getElementById('statusbar').textContent = 'Done';
-  };
-  const content = document.getElementById('content');
-  content.innerHTML = '';
-  content.appendChild(iframe);
+  setStatusText('Loading ' + url + '...');
+  loadIntoFrame(tab, url);
   updateAddrBar();
   updateNavButtons();
-  applyZoom();
   updateStarBtn();
 }
 
@@ -846,7 +1011,10 @@ function mpHandleMessage(msg) {
       if (msg.id === mpPeerId) { mpMyName = msg.name; mpSetWho(); }
       break;
     case 'navigate':
-      if (msg.by !== mpPeerId && activeTab) loadUrl(activeTab, msg.url);
+      if (msg.by !== mpPeerId && activeTab && msg.url) {
+        mpSuppressNav = true;
+        try { loadUrl(activeTab, msg.url); } finally { mpSuppressNav = false; }
+      }
       break;
     case 'chat':
       mpAddChatMsg(msg.from, msg.text, { color: mpCursorColor(msg.id || msg.from || 'x'), ts: msg.ts });
@@ -1067,9 +1235,13 @@ function mpClearUnread() {
 }
 
 // Hook into loadUrl to broadcast navigation
+// mpSuppressNav exists because a received navigate -> loadUrl would broadcast again,
+// which ping-pongs the two peers back and forth forever
+let mpSuppressNav = false;
 const _origLoadUrlMp = loadUrl;
 loadUrl = function(tab, url) {
   _origLoadUrlMp(tab, url);
+  if (mpSuppressNav) return;
   if (mpWs && mpWs.readyState === WebSocket.OPEN && tab === activeTab) {
     if (mpRoomSettings.nav === 'host' && !mpIsHost) return;
     mpWs.send(JSON.stringify({ type: 'navigate', url: url }));
@@ -1089,7 +1261,7 @@ function zoomIn() { if (!activeTab) return; activeTab.zoom = Math.min(3, (active
 function zoomOut() { if (!activeTab) return; activeTab.zoom = Math.max(0.3, (activeTab.zoom || 1) - 0.1); applyZoom(); }
 function applyZoom() {
   if (!activeTab) return;
-  const iframe = document.querySelector('iframe');
+  const iframe = activeTab.frame;
   if (iframe) {
     iframe.style.transform = 'scale(' + activeTab.zoom + ')';
     iframe.style.transformOrigin = 'top left';

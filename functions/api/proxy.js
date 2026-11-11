@@ -62,11 +62,15 @@ export async function onRequest(context) {
     const base = targetUrl.origin + targetUrl.pathname.replace(/\/[^\/]*$/, '/');
     html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">`);
 
+    // Absolute proxy url: a relative "/api/proxy?url=" gets resolved against the
+    // target's <base>, which is what made youtube/gmail throw SecurityError and go blank
+    const proxyBase = JSON.stringify(url.origin + '/api/proxy?url=');
+
     // Inject a script that rewrites link clicks to go through the proxy
     const proxyScript = `
 <script>
 (function() {
-  const PROXY = '/api/proxy?url=';
+  const PROXY = ${proxyBase};
   function rewriteUrl(u) {
     if (!u || u.startsWith('data:') || u.startsWith('blob:') || u.startsWith('javascript:') || u.startsWith('#')) return u;
     try {
@@ -105,10 +109,34 @@ export async function onRequest(context) {
       y: e.clientY / Math.max(1, window.innerHeight)
     }, '*');
   }, { passive: true });
+  // Tell the browser shell when the page's own scripts die, so it can show a
+  // useful message instead of leaving a silent white screen
+  var reported = 0;
+  function reportError(text) {
+    if (reported >= 3) return;
+    reported++;
+    try {
+      window.parent.postMessage({ type: 'pageerror', message: String(text || '').slice(0, 200) }, '*');
+    } catch (e) {}
+  }
+  window.addEventListener('error', function(e) {
+    if (e && e.message) reportError(e.message);
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    var r = e && e.reason;
+    reportError((r && (r.message || r)) || 'unhandled promise rejection');
+  });
 })();
 </script>`;
 
-    html = html.replace('</head>', proxyScript + '</head>');
+    // inject before </head>, but plenty of pages omit it or write </HEAD>
+    if (/<\/head\s*>/i.test(html)) {
+      html = html.replace(/<\/head\s*>/i, proxyScript + '</head>');
+    } else if (/<body[^>]*>/i.test(html)) {
+      html = html.replace(/<body[^>]*>/i, (m) => m + proxyScript);
+    } else {
+      html = proxyScript + html;
+    }
 
     // Strip X-Frame-Options and CSP by not forwarding them
     return new Response(html, {
