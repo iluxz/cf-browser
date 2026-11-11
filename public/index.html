@@ -1000,8 +1000,14 @@ function showCfbPage(tab, page) {
       break;
     case 'cookies':
       html = '<div class="cfb-page"><h1>Cookies</h1>' +
-        '<p style="color:#888;font-size:12px;margin-bottom:14px;">cookies stored by the browser shell (proxied sites keep their own)</p>' +
-        '<div class="item"><div class="title" style="word-break:break-all;">' + escapeHtml(document.cookie || '(none)') + '</div></div>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:14px;">cookies stored by the browser shell (proxied sites keep their own, forwarded where possible).</p>' +
+        '<div id="cookieList" style="margin-bottom:12px;"></div>' +
+        '<div style="display:flex;gap:8px;margin-top:12px;">' +
+        '<input id="ckName" placeholder="name" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;">' +
+        '<input id="ckValue" placeholder="value" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;">' +
+        '<button onclick="cfbAddCookie()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;">Add</button>' +
+        '<button onclick="cfbClearCookies()" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;">Clear all</button>' +
+        '</div>' +
         '</div>';
       break;
     case 'bookmarks':
@@ -1128,6 +1134,7 @@ html = '<div class="cfb-page"><div class="about"><div class="logo">🌐</div><h1
   view.innerHTML = html;
   if (page === 'wordle') wdlInit();
   if (page === 'tictactoe') { tttState = { board: Array(9).fill(''), turn: 'X', mode: tttState.mode || 'pvp', over: false, winner: null }; setTimeout(tttRender, 0); }
+  if (page === 'cookies') setTimeout(cfbRenderCookies, 0);
   tab.frame = null;
   tab.loading = false;
   clearProxyHint();
@@ -2619,6 +2626,45 @@ function applyZoom() {
 
 // ===== HOME =====
 function goHome() { if (!activeTab) return; loadUrl(activeTab, localStorage.getItem('cfb_homepage') || 'https://www.google.com'); }
+
+function cfbRenderCookies() {
+  const el = document.getElementById('cookieList');
+  if (!el) return;
+  const cookies = document.cookie ? document.cookie.split(';').map(c => c.trim()) : [];
+  if (!cookies.length) { el.innerHTML = '<p style="color:#888;font-size:12px;">no cookies.</p>'; return; }
+  el.innerHTML = cookies.map(c => {
+    const eq = c.indexOf('=');
+    const name = eq > -1 ? c.slice(0, eq) : c;
+    const val = eq > -1 ? c.slice(eq + 1) : '';
+    return '<div class="item"><div><div class="title">' + escapeHtml(name) + '</div><div class="url">' + escapeHtml(val) + '</div></div>' +
+      '<button onclick="cfbDeleteCookie(\'' + name.replace(/'/g, "\\'") + '\')">Delete</button></div>';
+  }).join('');
+}
+
+function cfbDeleteCookie(name) {
+  document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+  cfbRenderCookies();
+}
+
+function cfbAddCookie() {
+  const n = document.getElementById('ckName');
+  const v = document.getElementById('ckValue');
+  if (!n || !v) return;
+  const name = n.value.trim();
+  const value = v.value.trim();
+  if (!name) return;
+  document.cookie = name + '=' + value + ';path=/;max-age=31536000';
+  n.value = ''; v.value = '';
+  cfbRenderCookies();
+}
+
+function cfbClearCookies() {
+  document.cookie.split(';').forEach(c => {
+    const name = c.split('=')[0].trim();
+    if (name) document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+  });
+  cfbRenderCookies();
+}
 
 function cfbSetSettings() {
   const homeEl = document.getElementById('setHome');

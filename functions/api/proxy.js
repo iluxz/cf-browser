@@ -31,12 +31,14 @@ export async function onRequest(context) {
   }
 
   try {
+    const cookieHeader = request.headers.get('Cookie') || '';
     const resp = await fetch(targetUrl.toString(), {
       method: request.method,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
+        ...(cookieHeader ? { 'Cookie': cookieHeader } : {}),
       },
       redirect: 'follow',
     });
@@ -44,16 +46,21 @@ export async function onRequest(context) {
     const contentType = resp.headers.get('content-type') || '';
     const isHtml = contentType.includes('text/html');
 
+    // Forward Set-Cookie headers (strip Domain so cookies bind to the proxy origin)
+    const setCookies = (typeof resp.headers.getSetCookie === 'function')
+      ? resp.headers.getSetCookie()
+      : (resp.headers.get('set-cookie') ? [resp.headers.get('set-cookie')] : []);
+    const cleanCookies = setCookies.map(c => c.replace(/;\s*Domain=[^;]*/gi, '').replace(/;\s*Secure/gi, ''));
+
     if (!isHtml) {
       // Pass through non-HTML (images, css, js) with CORS headers
       const body = await resp.arrayBuffer();
-      return new Response(body, {
-        status: resp.status,
-        headers: {
-          'Content-Type': contentType,
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
+      const h = {
+        'Content-Type': contentType,
+        'Access-Control-Allow-Origin': '*',
+      };
+      if (cleanCookies.length) h['Set-Cookie'] = cleanCookies;
+      return new Response(body, { status: resp.status, headers: h });
     }
 
     let html = await resp.text();
@@ -339,12 +346,14 @@ export async function onRequest(context) {
     }
 
     // Strip X-Frame-Options and CSP by not forwarding them
+    const htmlHeaders = {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+    };
+    if (cleanCookies.length) htmlHeaders['Set-Cookie'] = cleanCookies;
     return new Response(html, {
       status: resp.status,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: htmlHeaders,
     });
   } catch (err) {
     return new Response(`Proxy error: ${err.message}`, { status: 502 });
