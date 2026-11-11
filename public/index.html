@@ -570,9 +570,10 @@ const SHORTCUTS = [
   { icon: '🎮', label: 'Games', cfb: 'games' },
   { icon: '🔍', label: 'Search', cfb: 'search' },
   { icon: '📰', label: 'News', cfb: 'news' },
+  { icon: '📖', label: 'Reader', cfb: 'reader' },
+  { icon: '🧮', label: 'Calc', cfb: 'calc' },
   { icon: '📋', label: 'Sites', cfb: 'websites' },
   { icon: '📝', label: 'Updates', cfb: 'updates' },
-  { icon: '📖', label: 'Wikipedia', url: 'https://en.wikipedia.org' },
 ];
 
 function newTab(url) {
@@ -1113,6 +1114,42 @@ function showCfbPage(tab, page) {
         '</div>' +
         '</div>';
       break;
+    case 'translate':
+      html = '<div class="cfb-page"><h1>Translate</h1>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:14px;">translate text using a free translation service.</p>' +
+        '<textarea id="transInput" placeholder="enter text to translate..." style="width:100%;height:120px;padding:12px;border-radius:8px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:8px;"></textarea>' +
+        '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+        '<select id="transLang" style="padding:6px 8px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;">' +
+        '<option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option>' +
+        '<option value="it">Italian</option><option value="pt">Portuguese</option><option value="ja">Japanese</option>' +
+        '<option value="ko">Korean</option><option value="zh">Chinese</option><option value="ru">Russian</option>' +
+        '<option value="ar">Arabic</option></select>' +
+        '<button onclick="cfbTranslate()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Translate</button>' +
+        '</div>' +
+        '<div id="transOutput" style="padding:12px;border-radius:8px;background:var(--bg3);color:var(--text2);font-size:13px;min-height:60px;"></div>' +
+        '</div>';
+      break;
+    case 'extensions':
+      html = '<div class="cfb-page"><h1>Extensions</h1>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:14px;">inject custom css/js into proxied pages.</p>' +
+        '<textarea id="extCss" placeholder="/* custom css */" style="width:100%;height:120px;padding:12px;border-radius:8px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;font-family:monospace;resize:vertical;margin-bottom:8px;"></textarea>' +
+        '<textarea id="extJs" placeholder="// custom js" style="width:100%;height:120px;padding:12px;border-radius:8px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;font-family:monospace;resize:vertical;margin-bottom:8px;"></textarea>' +
+        '<div style="display:flex;gap:8px;">' +
+        '<button onclick="cfbSaveExt()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Save</button>' +
+        '<button onclick="cfbClearExt()" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Clear</button>' +
+        '</div>' +
+        '<p style="color:#666;font-size:11px;margin-top:8px;">extensions are stored locally and applied to every proxied page.</p>' +
+        '</div>';
+      break;
+    case 'devtools':
+      html = '<div class="cfb-page"><h1>DevTools</h1>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:14px;">inspect the current page.</p>' +
+        '<div id="devtoolsInfo" style="font-family:monospace;font-size:12px;color:var(--text2);white-space:pre-wrap;background:var(--bg3);padding:12px;border-radius:8px;max-height:60vh;overflow:auto;"></div>' +
+        '<div style="margin-top:12px;display:flex;gap:8px;">' +
+        '<button onclick="cfbInspect()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Inspect Page</button>' +
+        '</div>' +
+        '</div>';
+      break;
     case 'websites':
       html = '<div class="cfb-page"><h1>Sites that work</h1>' +
         '<p style="color:#888;font-size:12px;margin-bottom:14px;">tested against the live proxy. a site works if its html already contains the content.</p>' +
@@ -1156,12 +1193,12 @@ function showCfbPage(tab, page) {
       break;
     case 'about':
 html = '<div class="cfb-page"><div class="about"><div class="logo">🌐</div><h1>CF Browser</h1><p>Version 1.0</p><p>Powered by Cloudflare Pages + Workers</p><p style="margin-top:16px;color:#555;font-size:11px;">' +
-      ['settings','bookmarks','history','cookies','wordle','games','search','news','websites','updates','about'].map(p =>
+      ['settings','bookmarks','history','cookies','wordle','games','search','news','reader','calc','notes','terminal','shortcuts','downloads','translate','extensions','devtools','websites','updates','about'].map(p =>
         '<span style="cursor:pointer;color:#7c5cff;" onclick="openCfb(\'' + p + '\')">' + p + '</span>').join(' · ') +
       '</p></div></div>';
       break;
     default:
-      html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, wordle, games, search, news, websites, updates, about</p></div>';
+      html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, wordle, games, search, news, reader, calc, notes, terminal, shortcuts, downloads, translate, extensions, devtools, websites, updates, about</p></div>';
   }
   const view = tabView(tab);
   view.innerHTML = html;
@@ -1171,6 +1208,15 @@ html = '<div class="cfb-page"><div class="about"><div class="logo">🌐</div><h1
   if (page === 'calc') setTimeout(cfbInitCalc, 0);
   if (page === 'notes') setTimeout(cfbLoadNotes, 0);
   if (page === 'terminal') setTimeout(() => cfbTermPrint('cf-browser terminal v1.0\ntype \'help\' for commands.'), 0);
+  if (page === 'devtools') setTimeout(cfbInspect, 0);
+  if (page === 'extensions') {
+    setTimeout(() => {
+      const css = document.getElementById('extCss');
+      const js = document.getElementById('extJs');
+      if (css) css.value = localStorage.getItem('cfb_ext_css') || '';
+      if (js) js.value = localStorage.getItem('cfb_ext_js') || '';
+    }, 0);
+  }
   tab.frame = null;
   tab.loading = false;
   clearProxyHint();
@@ -1273,6 +1319,7 @@ function tttMode(m) { tttState.mode = m; tttReset(); }
 function tttReset() { tttState = { board: Array(9).fill(''), turn: 'X', mode: tttState.mode, over: false, winner: null }; tttRender(); }
 
 // ===== SEARCH =====
+async function cfbSearchKey(e) { if (e.key === 'Enter') cfbSearch(); }
 async function cfbSearch() {
   const inp = document.getElementById('cfbSearchInput');
   const res = document.getElementById('cfbSearchResults');
@@ -1486,6 +1533,138 @@ async function cfbReader() {
     out.innerHTML = h + text;
   } catch (e) {
     out.innerHTML = '<p style="color:#e2685f;">failed: ' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+// ===== TRANSLATE =====
+async function cfbTranslate() {
+  const inp = document.getElementById('transInput');
+  const out = document.getElementById('transOutput');
+  const lang = document.getElementById('transLang');
+  if (!inp || !out) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  out.textContent = 'translating...';
+  try {
+    const r = await fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + (lang ? lang.value : 'es'));
+    const data = await r.json();
+    out.textContent = (data.responseData && data.responseData.translatedText) || 'translation failed';
+  } catch (e) {
+    out.textContent = 'error: ' + e.message;
+  }
+}
+
+// ===== EXTENSIONS =====
+function cfbSaveExt() {
+  const css = document.getElementById('extCss');
+  const js = document.getElementById('extJs');
+  if (css) localStorage.setItem('cfb_ext_css', css.value);
+  if (js) localStorage.setItem('cfb_ext_js', js.value);
+  const btn = document.querySelector('[onclick="cfbSaveExt()"]');
+  if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save'; }, 1200); }
+}
+
+function cfbClearExt() {
+  localStorage.removeItem('cfb_ext_css');
+  localStorage.removeItem('cfb_ext_js');
+  const css = document.getElementById('extCss');
+  const js = document.getElementById('extJs');
+  if (css) css.value = '';
+  if (js) js.value = '';
+}
+
+// apply extensions to proxied pages (injected via proxy.js relay)
+// (stored in localStorage, applied by the proxy script on page load)
+
+// ===== DEVTOOLS =====
+function cfbInspect() {
+  const el = document.getElementById('devtoolsInfo');
+  if (!el) return;
+  const frame = activeTab && activeTab.frame;
+  if (!frame) { el.textContent = 'no page loaded.'; return; }
+  try {
+    const doc = frame.contentDocument;
+    const info = [];
+    info.push('URL: ' + (activeTab.url || ''));
+    info.push('Title: ' + (frame.contentDocument.title || ''));
+    info.push('Ready state: ' + doc.readyState);
+    info.push('Scripts: ' + doc.querySelectorAll('script').length);
+    info.push('Images: ' + doc.querySelectorAll('img').length);
+    info.push('Links: ' + doc.querySelectorAll('a').length);
+    info.push('Forms: ' + doc.querySelectorAll('form').length);
+    info.push('Inputs: ' + doc.querySelectorAll('input').length);
+    info.push('Iframes: ' + doc.querySelectorAll('iframe').length);
+    info.push('Body text length: ' + (doc.body ? doc.body.innerText.length : 0));
+    info.push('Scroll height: ' + (doc.documentElement ? doc.documentElement.scrollHeight : 0));
+    // list all cookies
+    info.push('Cookies: ' + (doc.cookie || '(none)'));
+    el.textContent = info.join('\\n');
+  } catch (e) {
+    el.textContent = 'error: ' + e.message;
+  }
+}
+
+// ===== TRANSLATE =====
+async function cfbTranslate() {
+  const inp = document.getElementById('transInput');
+  const out = document.getElementById('transOutput');
+  const lang = document.getElementById('transLang');
+  if (!inp || !out) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  out.textContent = 'translating...';
+  try {
+    const r = await fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + (lang ? lang.value : 'es'));
+    const data = await r.json();
+    out.textContent = (data.responseData && data.responseData.translatedText) || 'translation failed';
+  } catch (e) {
+    out.textContent = 'error: ' + e.message;
+  }
+}
+
+// ===== EXTENSIONS =====
+function cfbSaveExt() {
+  const css = document.getElementById('extCss');
+  const js = document.getElementById('extJs');
+  if (css) localStorage.setItem('cfb_ext_css', css.value);
+  if (js) localStorage.setItem('cfb_ext_js', js.value);
+  const btn = document.querySelector('[onclick="cfbSaveExt()"]');
+  if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save'; }, 1200); }
+}
+
+function cfbClearExt() {
+  localStorage.removeItem('cfb_ext_css');
+  localStorage.removeItem('cfb_ext_js');
+  const css = document.getElementById('extCss');
+  const js = document.getElementById('extJs');
+  if (css) css.value = '';
+  if (js) js.value = '';
+}
+
+// ===== DEVTOOLS =====
+function cfbInspect() {
+  const el = document.getElementById('devtoolsInfo');
+  if (!el) return;
+  const frame = activeTab && activeTab.frame;
+  if (!frame) { el.textContent = 'no page loaded.'; return; }
+  try {
+    const doc = frame.contentDocument;
+    const info = [];
+    info.push('URL: ' + (activeTab.url || ''));
+    info.push('Title: ' + (doc.title || ''));
+    info.push('Ready state: ' + doc.readyState);
+    info.push('Scripts: ' + doc.querySelectorAll('script').length);
+    info.push('Images: ' + doc.querySelectorAll('img').length);
+    info.push('Links: ' + doc.querySelectorAll('a').length);
+    info.push('Forms: ' + doc.querySelectorAll('form').length);
+    info.push('Inputs: ' + doc.querySelectorAll('input').length);
+    info.push('Iframes: ' + doc.querySelectorAll('iframe').length);
+    info.push('Body text length: ' + (doc.body ? doc.body.innerText.length : 0));
+    info.push('Scroll height: ' + (doc.documentElement ? doc.documentElement.scrollHeight : 0));
+    info.push('Cookies: ' + (doc.cookie || '(none)'));
+    el.textContent = info.join('\\n');
+  } catch (e) {
+    el.textContent = 'error: ' + e.message;
   }
 }
 
