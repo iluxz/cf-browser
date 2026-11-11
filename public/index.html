@@ -114,7 +114,6 @@
     padding: 0 12px; font-size: 10px; color: #555; border-top: 1px solid #2a2a3e;
   }
 
-  /* Bookmarks bar */
   .bookmarks-bar { height: 28px; background: #16162a; display: flex; align-items: center; padding: 0 8px; gap: 4px; border-bottom: 1px solid #2a2a3e; overflow-x: auto; font-size: 11px; }
   .bookmarks-bar::-webkit-scrollbar { height: 0; }
   .bookmark-item { padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; border: 1px solid transparent; }
@@ -125,6 +124,92 @@
   .star-btn { width: 28px; height: 28px; border-radius: 6px; border: none; background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
   .star-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
   .star-btn.starred { color: #ffd700; }
+
+  .mp-bar { height: 32px; background: #1a1a3e; display: flex; align-items: center; padding: 0 8px; gap: 6px; border-bottom: 1px solid #2a2a3e; font-size: 12px; }
+  .mp-bar .mp-status { color: #666; flex: 1; }
+  .mp-bar .mp-status.connected { color: #50c878; }
+  .mp-bar .mp-status.hosting { color: #7c5cff; }
+  .mp-btn { padding: 4px 10px; border-radius: 4px; border: 1px solid #3a3a5e; background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer; font-size: 11px; }
+  .mp-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .mp-btn.active { border-color: #7c5cff; color: #7c5cff; }
+  .mp-code { font-family: monospace; font-size: 14px; color: #ffd700; letter-spacing: 2px; font-weight: 700; }
+  .mp-peers { display: flex; gap: 4px; }
+  .mp-peer { width: 20px; height: 20px; border-radius: 50%; background: #7c5cff; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  .mp-chat { position: fixed; bottom: 24px; right: 12px; width: 280px; max-height: 300px; background: #16162a; border: 1px solid #3a3a5e; border-radius: 12px; display: none; flex-direction: column; z-index: 50; }
+  .mp-chat.open { display: flex; }
+  .mp-chat-header { padding: 8px 12px; border-bottom: 1px solid #2a2a3e; font-size: 12px; color: #7c5cff; display: flex; justify-content: space-between; align-items: center; }
+  .mp-chat-header .close { cursor: pointer; color: #666; }
+  .mp-chat-header .close:hover { color: #ff5a8a; }
+  .mp-chat-messages { flex: 1; overflow-y: auto; padding: 8px; font-size: 11px; max-height: 200px; }
+  .mp-chat-msg { margin-bottom: 4px; }
+  .mp-chat-msg .name { font-weight: 700; color: #7c5cff; }
+  .mp-chat-input { display: flex; gap: 4px; padding: 8px; border-top: 1px solid #2a2a3e; }
+  .mp-chat-input input { flex: 1; padding: 4px 8px; border-radius: 4px; border: 1px solid #3a3a5e; background: #0f0f1a; color: #e0e0e0; font-size: 11px; }
+  .mp-chat-input button { padding: 4px 8px; border-radius: 4px; border: none; background: #7c5cff; color: #fff; cursor: pointer; font-size: 11px; }
+  .mp-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .mp-panel { background: #16162a; border: 1px solid #3a3a5e; border-radius: 12px; padding: 24px; width: 360px; max-width: 90vw; text-align: center; }
+  .mp-panel h2 { color: #7c5cff; margin-bottom: 12px; }
+  .mp-panel p { color: #aaa; font-size: 12px; margin-bottom: 12px; }
+  .mp-panel input { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #3a3a5e; background: #0f0f1a; color: #e0e0e0; font-size: 14px; text-align: center; letter-spacing: 2px; margin-bottom: 12px; }
+  .mp-panel button { padding: 8px 16px; border-radius: 6px; border: none; background: #7c5cff; color: #fff; cursor: pointer; font-size: 13px; margin: 4px; }
+  .mp-panel button.secondary { background: #3a3a5e; }
+  .mp-panel .code-display { font-size: 24px; font-weight: 800; color: #ffd700; letter-spacing: 4px; margin: 12px 0; }
+  .mp-cursor-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+  .mp-cursor { position: absolute; opacity: 0; transition: opacity .25s ease; will-change: left, top; }
+  .mp-cursor.live { opacity: 1; }
+  .mp-cursor svg { display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,.55)); }
+  .mp-cursor-label { position: absolute; left: 13px; top: 17px; font-size: 10px; font-weight: 700; color: #0b0b12; padding: 1px 6px; border-radius: 999px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+  .mp-chat { width: 310px; max-height: 380px; }
+  .mp-chat.open { display: flex; }
+  .mp-chat-messages { max-height: 280px; font-size: 12px; }
+  .mp-chat-who { margin-left: auto; margin-right: 10px; font-size: 10px; color: #888; cursor: pointer; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mp-chat-who:hover { color: #7c5cff; }
+  .mp-chat-msg { margin-bottom: 6px; line-height: 1.4; word-break: break-word; }
+  .mp-chat-msg .ts { color: #555; font-size: 9px; margin-right: 5px; }
+  .mp-chat-msg .name { font-weight: 700; }
+  .mp-chat-msg.sys { color: #6a6a86; font-style: italic; font-size: 11px; }
+  .mp-chat-msg.me .name { color: #50c878; }
+  .mp-chat-input input:focus { border-color: #7c5cff; outline: none; }
+  .mp-chat-badge { background: #ff5a8a; color: #fff; border-radius: 999px; font-size: 9px; padding: 1px 5px; margin-left: 5px; font-weight: 700; line-height: 1.4; }
+  .mp-panel-wide { width: 420px; }
+  .mp-fields { display: flex; gap: 10px; margin-bottom: 14px; text-align: left; }
+  .mp-fields label { flex: 1; font-size: 10px; color: #8a8aa8; text-transform: uppercase; letter-spacing: .6px; }
+  .mp-fields input { width: 100%; margin-top: 4px; padding: 6px 8px; border-radius: 6px; border: 1px solid #3a3a5e; background: #0f0f1a; color: #e0e0e0; font-size: 13px; text-align: left; letter-spacing: 0; }
+  .mp-fields input:focus { border-color: #7c5cff; outline: none; }
+  .mp-toggles { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; text-align: left; }
+  .mp-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #bbb; cursor: pointer; }
+  .mp-check input { accent-color: #7c5cff; width: 14px; height: 14px; cursor: pointer; }
+  .mp-hint { font-size: 10px; color: #5c5c78; margin-bottom: 12px; word-break: break-all; font-family: monospace; line-height: 1.5; }
+  .mp-err { color: #ff5a8a; font-size: 12px; margin-bottom: 12px; }
+  .mp-panel input::placeholder { color: #4a4a66; }
+
+  .zoom-controls { display: flex; align-items: center; gap: 2px; }
+  .zoom-btn { width: 24px; height: 24px; border-radius: 4px; border: none; background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  .zoom-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .zoom-level { font-size: 10px; color: #666; min-width: 36px; text-align: center; }
+  .tab.pinned { min-width: 36px; max-width: 40px; padding: 0 6px; }
+  .tab.pinned .tab-title { display: none; }
+  .tab.pinned .close { display: none; }
+  .tab .pin { opacity: 0; font-size: 10px; cursor: pointer; margin-right: 4px; }
+  .tab:hover .pin, .tab.pinned .pin { opacity: 0.6; }
+  .tab.pinned .pin { opacity: 1; color: #7c5cff; }
+  .tab .pin:hover { opacity: 1; color: #7c5cff; }
+  .source-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .source-panel { background: #0f0f1a; border: 1px solid #3a3a5e; border-radius: 12px; width: 90vw; max-width: 900px; height: 80vh; display: flex; flex-direction: column; }
+  .source-header { padding: 12px 16px; border-bottom: 1px solid #3a3a5e; display: flex; justify-content: space-between; align-items: center; }
+  .source-header h3 { font-size: 14px; color: #7c5cff; }
+  .source-close { background: none; border: none; color: #aaa; cursor: pointer; font-size: 18px; }
+  .source-close:hover { color: #fff; }
+  .source-body { flex: 1; overflow: auto; padding: 12px; }
+  .source-body pre { font-family: monospace; font-size: 11px; color: #c0c0c0; white-space: pre-wrap; word-break: break-all; line-height: 1.4; }
+  .home-btn { width: 28px; height: 28px; border-radius: 6px; border: none; background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .home-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .find-bar { position: absolute; top: 0; right: 12px; background: #16162a; border: 1px solid #3a3a5e; border-radius: 0 0 8px 8px; padding: 6px 10px; display: flex; gap: 6px; align-items: center; z-index: 10; font-size: 12px; color: #aaa; }
+  .find-bar input { padding: 4px 8px; border-radius: 4px; border: 1px solid #3a3a5e; background: #0f0f1a; color: #e0e0e0; font-size: 12px; width: 180px; }
+  .find-bar input:focus { border-color: #7c5cff; outline: none; }
+  .find-bar button { padding: 4px 8px; border-radius: 4px; border: none; background: rgba(255,255,255,0.1); color: #aaa; cursor: pointer; font-size: 11px; }
+  .find-bar button:hover { background: rgba(255,255,255,0.2); color: #fff; }
+  .find-count { font-size: 11px; color: #666; min-width: 40px; text-align: center; }
 </style>
 </head>
 <body>
@@ -141,11 +226,41 @@
   <button class="nav-btn" onclick="reload()">↻</button>
   <input class="addr-input" id="addrInput" placeholder="Enter URL or search..." onkeydown="if(event.key==='Enter')navigate()">
   <button class="go-btn" onclick="navigate()">→</button>
+  <button class="home-btn" onclick="goHome()" title="Home">H</button>
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomOut()" title="Zoom out">-</button>
+    <span class="zoom-level" id="zoomLevel">100%</span>
+    <button class="zoom-btn" onclick="zoomIn()" title="Zoom in">+</button>
+  </div>
   <button class="star-btn" id="starBtn" onclick="toggleBookmark()" title="Bookmark">☆</button>
+  <button class="settings-btn" onclick="openSettings()" title="Settings">S</button>
+  <button class="settings-btn" onclick="viewSource()" title="View source">&lt;/&gt;</button>
 </div>
 
 <div class="bookmarks-bar" id="bookmarksBar"></div>
+
+<div class="mp-bar" id="mpBar">
+  <span class="mp-status" id="mpStatus">Not connected</span>
+  <div class="mp-peers" id="mpPeers"></div>
+  <button class="mp-btn" onclick="mpHost()">Host Room</button>
+  <button class="mp-btn" onclick="mpJoin()">Join Room</button>
+  <button class="mp-btn" id="mpChatBtn" onclick="mpToggleChat()" style="display:none">Chat</button>
+  <button class="mp-btn" id="mpLeaveBtn" onclick="mpLeave()" style="display:none">Leave</button>
+</div>
+<div class="mp-chat" id="mpChat">
+  <div class="mp-chat-header">
+    <span>Room Chat</span>
+    <span class="mp-chat-who" id="mpChatWho" onclick="mpRename()" title="click to change your name">you</span>
+    <span class="close" onclick="mpToggleChat()">×</span>
+  </div>
+  <div class="mp-chat-messages" id="mpChatMessages"></div>
+  <div class="mp-chat-input">
+    <input type="text" id="mpChatInput" placeholder="Message the room..." maxlength="500" onkeydown="mpChatKey(event)">
+    <button onclick="mpSendChat()">Send</button>
+  </div>
+</div>
 <div class="content" id="content"></div>
+<div id="findBarContainer"></div>
 
 <div class="statusbar" id="statusbar">Ready</div>
 
@@ -167,7 +282,7 @@ const SHORTCUTS = [
 
 function newTab(url) {
   const id = ++tabCounter;
-  const tab = { id, url: url || null, title: 'New Tab', history: [], histIdx: -1, loading: false };
+  const tab = { id, url: url || null, title: 'New Tab', history: [], histIdx: -1, loading: false, pinned: false, zoom: 1 };
   tabs.push(tab);
   activeTab = tab;
   renderTabs();
@@ -182,6 +297,7 @@ function closeTab(id, e) {
   if (e) e.stopPropagation();
   const idx = tabs.findIndex(t => t.id === id);
   if (idx === -1) return;
+  if (tabs[idx].pinned) { tabs[idx].pinned = false; renderTabs(); return; }
   tabs.splice(idx, 1);
   if (activeTab && activeTab.id === id) {
     activeTab = tabs.length > 0 ? tabs[Math.max(0, idx - 1)] : null;
@@ -197,6 +313,8 @@ function switchTab(id) {
   renderContent();
   updateAddrBar();
   updateNavButtons();
+  applyZoom();
+  updateStarBtn();
 }
 
 function renderTabs() {
@@ -204,9 +322,9 @@ function renderTabs() {
   bar.innerHTML = '<button class="newtab-btn" onclick="newTab()">+</button>';
   tabs.forEach(tab => {
     const el = document.createElement('div');
-    el.className = 'tab' + (activeTab && activeTab.id === tab.id ? ' active' : '');
+    el.className = 'tab' + (tab.pinned ? ' pinned' : '') + (activeTab && activeTab.id === tab.id ? ' active' : '');
     el.onclick = () => switchTab(tab.id);
-    el.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis">${tab.title}</span><span class="close" onclick="closeTab(${tab.id}, event)">×</span>`;
+    el.innerHTML = `<span class="pin" onclick="togglePin(${tab.id}, event)" title="Pin">P</span><span style="overflow:hidden;text-overflow:ellipsis">${tab.title}</span><span class="close" onclick="closeTab(${tab.id}, event)">×</span>`;
     bar.insertBefore(el, bar.lastChild);
   });
 }
@@ -300,10 +418,18 @@ function loadUrl(tab, url) {
   content.innerHTML = '';
   content.appendChild(iframe);
 
-  // Listen for navigation messages from the iframe
+  // Listen for navigation + cursor messages from the iframe
   window.addEventListener('message', (e) => {
-    if (e.data && e.data.type === 'navigate' && activeTab && activeTab.id === tab.id) {
-      loadUrl(tab, decodeURIComponent(e.data.url.replace(PROXY, '')));
+    if (!e.data || !activeTab || activeTab.id !== tab.id) return;
+    if (e.data.type === 'navigate') {
+      loadUrl(tab, decodeURIComponent(String(e.data.url).replace(PROXY, '')));
+      return;
+    }
+    if (e.data.type === 'cursor') {
+      const r = iframe.getBoundingClientRect();
+      const x = (r.left + e.data.x * r.width) / Math.max(1, window.innerWidth);
+      const y = (r.top + e.data.y * r.height) / Math.max(1, window.innerHeight);
+      mpSendCursor(x, y);
     }
   });
 }
@@ -312,8 +438,61 @@ function navigate() {
   const input = document.getElementById('addrInput');
   const url = input.value.trim();
   if (!url || !activeTab) return;
+  if (url.toLowerCase().startsWith('cfb::') || url.toLowerCase().startsWith('cfb://')) {
+    const page = url.toLowerCase().replace(/^cfb::?\/?/, '').trim();
+    showCfbPage(activeTab, page);
+    activeTab.url = url;
+    activeTab.title = 'cfb::' + page;
+    renderTabs();
+    updateAddrBar();
+    return;
+  }
   loadUrl(activeTab, url);
 }
+
+function showCfbPage(tab, page) {
+  const content = document.getElementById('content');
+  let html = '';
+  switch (page) {
+    case 'settings':
+      openSettings();
+      return;
+    case 'bookmarks':
+      html = '<div class="cfb-page"><h1>Bookmarks</h1>';
+      if (bookmarks.length === 0) html += '<div class="empty">No bookmarks yet.</div>';
+      else bookmarks.forEach(bm => {
+        html += '<div class="item"><div><div class="title">' + escapeHtml(bm.title) + '</div><div class="url">' + escapeHtml(bm.url) + '</div></div><button onclick="loadUrl(activeTab, \'' + bm.url.replace(/'/g, "\\'") + '\')">Open</button></div>';
+      });
+      html += '</div>';
+      break;
+    case 'history':
+      html = '<div class="cfb-page"><h1>History</h1>';
+      const hist = tab.history || [];
+      if (hist.length === 0) html += '<div class="empty">No history yet.</div>';
+      else hist.slice().reverse().forEach(url => {
+        html += '<div class="item"><div class="url">' + escapeHtml(url) + '</div><button onclick="loadUrl(activeTab, \'' + url.replace(/'/g, "\\'") + '\')">Open</button></div>';
+      });
+      html += '</div>';
+      break;
+    case 'cookies':
+      openCookieManager();
+      return;
+    case 'about':
+      html = '<div class="cfb-page"><div class="about"><div class="logo">🌐</div><h1>CF Browser</h1><p>Version 1.0</p><p>Powered by Cloudflare Pages + Workers</p><p style="margin-top:16px;color:#555;font-size:11px;">cfb::settings · cfb::bookmarks · cfb::history · cfb::cookies · cfb::about</p></div></div>';
+      break;
+    default:
+      html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, about</p></div>';
+  }
+  content.innerHTML = html;
+  document.getElementById('statusbar').textContent = 'cfb::' + page;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 
 function navigateTo(url) {
   if (!activeTab) newTab(url);
@@ -355,6 +534,8 @@ function loadUrlWithoutHistory(tab, url) {
   content.appendChild(iframe);
   updateAddrBar();
   updateNavButtons();
+  applyZoom();
+  updateStarBtn();
 }
 
 function reload() {
@@ -369,62 +550,677 @@ newTab();
 // ===== BOOKMARKS =====
 let bookmarks = [];
 try { bookmarks = JSON.parse(localStorage.getItem('cfb_bookmarks') || '[]'); } catch {}
-
-function saveBookmarks() {
-  try { localStorage.setItem('cfb_bookmarks', JSON.stringify(bookmarks)); } catch {}
-}
-
+function saveBookmarks() { try { localStorage.setItem('cfb_bookmarks', JSON.stringify(bookmarks)); } catch {} }
 function toggleBookmark() {
   if (!activeTab || !activeTab.url) return;
   const idx = bookmarks.findIndex(b => b.url === activeTab.url);
-  if (idx === -1) {
-    bookmarks.push({ title: activeTab.title || activeTab.url, url: activeTab.url });
-  } else {
-    bookmarks.splice(idx, 1);
-  }
-  saveBookmarks();
-  renderBookmarks();
-  updateStarBtn();
+  if (idx === -1) bookmarks.push({ title: activeTab.title || activeTab.url, url: activeTab.url });
+  else bookmarks.splice(idx, 1);
+  saveBookmarks(); renderBookmarks(); updateStarBtn();
 }
-
 function removeBookmark(url) {
   bookmarks = bookmarks.filter(b => b.url !== url);
-  saveBookmarks();
-  renderBookmarks();
-  updateStarBtn();
+  saveBookmarks(); renderBookmarks(); updateStarBtn();
 }
-
 function renderBookmarks() {
   const bar = document.getElementById('bookmarksBar');
-  if (!bar) return;
   bar.innerHTML = '';
   bookmarks.forEach(bm => {
     const el = document.createElement('div');
     el.className = 'bookmark-item';
     el.title = bm.url;
-    el.innerHTML = '<span>' + (bm.title || '').slice(0, 20) + '</span><span class="bm-remove" onclick="removeBookmark(\'' + bm.url.replace(/'/g, "\\'") + '\', event)">×</span>';
-    el.onclick = function() { if (activeTab) loadUrl(activeTab, bm.url); };
+    el.innerHTML = '<span>' + bm.title.slice(0, 20) + '</span><span class="bm-remove" onclick="removeBookmark(\'' + bm.url.replace(/'/g, "\\'") + '\')">x</span>';
+    el.onclick = () => { if (activeTab) loadUrl(activeTab, bm.url); };
     bar.appendChild(el);
   });
 }
-
 function updateStarBtn() {
   const btn = document.getElementById('starBtn');
-  if (!btn) return;
-  if (!activeTab || !activeTab.url) { btn.textContent = '☆'; btn.classList.remove('starred'); return; }
-  const isBookmarked = bookmarks.some(b => b.url === activeTab.url);
-  btn.textContent = isBookmarked ? '★' : '☆';
-  btn.classList.toggle('starred', isBookmarked);
+  if (!btn || !activeTab || !activeTab.url) { if (btn) { btn.textContent = '☆'; btn.classList.remove('starred'); } return; }
+  const isBm = bookmarks.some(b => b.url === activeTab.url);
+  btn.textContent = isBm ? '★' : '☆';
+  btn.classList.toggle('starred', isBm);
+}
+renderBookmarks();
+
+const MP_WORKER = 'https://cf-browser-mp.cnnecare.workers.dev';
+let mpWs = null, mpRoomId = null, mpPeerId = null, mpIsHost = false, mpPeers = [];
+
+// room codes are generated locally - the durable object is created by the websocket itself,
+// so hosting needs zero fetch (no CORS, no NetworkError)
+let mpConfig = { host: false, pw: '', max: 8, chat: true, cursors: true, nav: 'all' };
+let mpRoomSettings = { locked: false, max: 8, chat: true, cursors: true, nav: 'all', peers: 0 };
+let mpCursorsAllowed = true;
+
+function mpRandomCode() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  const buf = new Uint8Array(6);
+  crypto.getRandomValues(buf);
+  for (let i = 0; i < 6; i++) s += A[buf[i] % A.length];
+  return s;
 }
 
-// Update star button on tab switch and load
-const _origSwitchTab_bm = switchTab;
-switchTab = function(id) {
-  _origSwitchTab_bm(id);
-  updateStarBtn();
+function mpInviteUrl() {
+  const q = new URLSearchParams();
+  q.set('join', mpRoomId || '');
+  const pw = (document.getElementById('mpSetPw') || {}).value || '';
+  if (pw) q.set('pw', pw);
+  return location.origin + location.pathname + '?' + q.toString();
+}
+
+function mpRefreshInvite() {
+  const hint = document.getElementById('mpInviteHint');
+  if (!hint || !mpRoomId) return;
+  hint.textContent = mpInviteUrl();
+}
+
+function mpHost() {
+  mpRoomId = mpRandomCode();
+  const overlay = document.createElement('div');
+  overlay.className = 'mp-overlay';
+  overlay.innerHTML = '<div class="mp-panel mp-panel-wide"><h2>New Room</h2>' +
+    '<div class="code-display">' + mpRoomId + '</div>' +
+    '<div class="mp-fields">' +
+      '<label>password<input id="mpSetPw" type="text" placeholder="optional" maxlength="64" autocomplete="off"></label>' +
+      '<label>people<input id="mpSetMax" type="number" min="2" max="50" value="8"></label>' +
+    '</div>' +
+    '<div class="mp-toggles">' +
+      '<label class="mp-check"><input type="checkbox" id="mpSetChat" checked><span>chat</span></label>' +
+      '<label class="mp-check"><input type="checkbox" id="mpSetCursors" checked><span>live cursors</span></label>' +
+      '<label class="mp-check"><input type="checkbox" id="mpSetNav"><span>only the host can change the page</span></label>' +
+    '</div>' +
+    '<p class="mp-hint" id="mpInviteHint"></p>' +
+    '<button onclick="mpStartHost()">Start room</button>' +
+    '<button class="secondary" onclick="mpCopyInvite(this)">Copy invite</button>' +
+    '<button class="secondary" onclick="mpRoomId = null; closeMpOverlay()">Cancel</button></div>';
+  document.body.appendChild(overlay);
+  ['mpSetPw', 'mpSetMax', 'mpSetChat', 'mpSetCursors', 'mpSetNav'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', mpRefreshInvite);
+    el.addEventListener('change', mpRefreshInvite);
+  });
+  mpRefreshInvite();
+}
+
+function mpStartHost() {
+  const pw = (document.getElementById('mpSetPw') || {}).value || '';
+  const maxRaw = parseInt((document.getElementById('mpSetMax') || {}).value || '8', 10);
+  mpConfig = {
+    host: true,
+    pw: pw.slice(0, 64),
+    max: Number.isFinite(maxRaw) ? Math.max(2, Math.min(50, maxRaw)) : 8,
+    chat: !!((document.getElementById('mpSetChat') || {}).checked),
+    cursors: !!((document.getElementById('mpSetCursors') || {}).checked),
+    nav: (document.getElementById('mpSetNav') || {}).checked ? 'host' : 'all',
+  };
+  closeMpOverlay();
+  mpConnect();
+}
+
+function mpCopyInvite(btn) {
+  const url = mpInviteUrl();
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = 'Copied';
+    setTimeout(() => { btn.textContent = 'Copy invite'; }, 1200);
+  }).catch(() => {});
+}
+
+function closeMpOverlay() {
+  const o = document.querySelector('.mp-overlay');
+  if (o) o.remove();
+}
+
+function mpJoin(prefillCode, prefillPw, errText) {
+  const overlay = document.createElement('div');
+  overlay.className = 'mp-overlay';
+  overlay.innerHTML = '<div class="mp-panel"><h2>Join a Room</h2>' +
+    (errText ? '<p class="mp-err">' + escapeHtml(errText) + '</p>' : '') +
+    '<p>room code</p><input id="mpJoinCode" type="text" placeholder="XXXXXX" maxlength="6" autocomplete="off" value="' + escapeHtml(prefillCode || '') + '">' +
+    '<p style="margin-top:10px;">password <span style="color:#555;">(if it has one)</span></p><input id="mpJoinPw" type="text" maxlength="64" autocomplete="off" placeholder="leave blank if open" value="' + escapeHtml(prefillPw || '') + '">' +
+    '<div><button onclick="mpDoJoin()">Join</button><button class="secondary" onclick="closeMpOverlay()">Cancel</button></div></div>';
+  document.body.appendChild(overlay);
+  const codeEl = document.getElementById('mpJoinCode');
+  const pwEl = document.getElementById('mpJoinPw');
+  if (!prefillCode) codeEl.focus(); else pwEl.focus();
+  [codeEl, pwEl].forEach(el => el.addEventListener('keydown', (e) => { if (e.key === 'Enter') mpDoJoin(); }));
+}
+
+function mpDoJoin() {
+  const codeEl = document.getElementById('mpJoinCode');
+  const pwEl = document.getElementById('mpJoinPw');
+  if (!codeEl) return;
+  const code = codeEl.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  if (!code) return;
+  closeMpOverlay();
+  mpRoomId = code;
+  mpConfig = { host: false, pw: (pwEl.value || '').slice(0, 64), max: 8, chat: true, cursors: true, nav: 'all' };
+  mpConnect();
+}
+
+function mpConnect() {
+  if (!mpRoomId) return;
+  mpSetStatus('Connecting to ' + mpRoomId + '...', 'hosting');
+
+  const q = new URLSearchParams();
+  if (mpConfig.host) q.set('create', '1');
+  if (mpConfig.pw) q.set('pw', mpConfig.pw);
+  if (mpConfig.host) {
+    q.set('max', String(mpConfig.max));
+    q.set('chat', mpConfig.chat ? '1' : '0');
+    q.set('cursors', mpConfig.cursors ? '1' : '0');
+    q.set('nav', mpConfig.nav);
+  }
+  const qs = q.toString();
+  const wsUrl = MP_WORKER.replace('https://', 'wss://') + '/room/' + encodeURIComponent(mpRoomId) + (qs ? '?' + qs : '');
+
+  try { mpWs = new WebSocket(wsUrl); } catch (e) { mpFail('Could not open socket: ' + e.message); return; }
+
+  let opened = false;
+  let rejected = null;
+  const connectTimer = setTimeout(() => {
+    if (!opened) mpFail('Timed out reaching the room server. check the worker is deployed.');
+  }, 10000);
+
+  mpWs.onopen = () => { opened = true; clearTimeout(connectTimer); };
+  mpWs.onmessage = (event) => {
+    let msg; try { msg = JSON.parse(event.data); } catch { return; }
+    if (msg.type === 'rejected') { rejected = msg.reason; return; }
+    mpHandleMessage(msg);
+  };
+  mpWs.onclose = (ev) => {
+    clearTimeout(connectTimer);
+    const code = ev.code;
+    const reason = rejected || ev.reason;
+
+    if (code === 4001 || reason === 'bad-password') {
+      const codeTaken = mpRoomId;
+      mpResetRoom();
+      mpJoin(codeTaken, mpConfig.pw, 'wrong password for that room');
+      return;
+    }
+    if (code === 4002 || reason === 'full') {
+      mpFail('that room is full');
+      mpResetRoom();
+      return;
+    }
+    if (!opened) { mpFail('Room server closed the connection (code ' + code + ').'); mpResetRoom(); return; }
+
+    mpSetStatus('Disconnected', '');
+    const wasLeaving = mpLeavingType;
+    mpLeavingType = false;
+    mpResetRoom();
+    if (!wasLeaving) mpAddChatMsg('', 'disconnected', { sys: true });
+  };
+  mpWs.onerror = () => { if (!opened) mpFail('NetworkError reaching the room server.'); };
+}
+
+function mpResetRoom() {
+  mpRoomId = null; mpPeerId = null; mpPeers = []; mpIsHost = false;
+  mpClearCursors();
+  mpClearUnread();
+  mpUpdatePeers();
+  const chatBtn = document.getElementById('mpChatBtn');
+  const leaveBtn = document.getElementById('mpLeaveBtn');
+  if (chatBtn) chatBtn.style.display = 'none';
+  if (leaveBtn) leaveBtn.style.display = 'none';
+  const chat = document.getElementById('mpChat');
+  if (chat) chat.classList.remove('open');
+}
+
+function mpFail(text) {
+  mpSetStatus(text, '');
+  const overlay = document.createElement('div');
+  overlay.className = 'mp-overlay';
+  overlay.innerHTML = '<div class="mp-panel"><h2>Multiplayer</h2><p>' + escapeHtml(text) + '</p>' +
+    '<p style="font-size:11px;color:#666;">server: ' + escapeHtml(MP_WORKER) + '</p>' +
+    '<button onclick="closeMpOverlay()">Close</button></div>';
+  document.body.appendChild(overlay);
+}
+
+function mpStatusText() {
+  if (!mpRoomId) return 'Not connected';
+  const s = mpRoomSettings;
+  const count = (mpPeers.length || 1) + '/' + (s.max || 8);
+  let extra = '';
+  if (s.locked) extra += ' 🔒';
+  if (s.nav === 'host') extra += ' · host nav';
+  if (s.chat === false) extra += ' · no chat';
+  if (s.cursors === false) extra += ' · no cursors';
+  return (mpIsHost ? 'Hosting ' : 'In ') + mpRoomId + ' (' + count + ')' + extra;
+}
+
+function mpApplySettings(s) {
+  if (!s) return;
+  mpRoomSettings = s;
+  mpCursorsAllowed = s.cursors !== false;
+  if (s.cursors === false) mpClearCursors();
+  const chatBtn = document.getElementById('mpChatBtn');
+  if (chatBtn && s.chat === false) chatBtn.style.display = 'none';
+  if (s.chat === false) {
+    const chat = document.getElementById('mpChat');
+    if (chat) chat.classList.remove('open');
+  }
+  mpSetStatus(mpStatusText(), mpIsHost ? 'hosting' : 'connected');
+}
+
+function mpHandleMessage(msg) {
+  switch (msg.type) {
+    case 'welcome':
+      mpPeerId = msg.id; mpIsHost = msg.host;
+      mpPeers = msg.peers || [];
+      if (msg.name) { mpMyName = msg.name; mpSetWho(); }
+      mpUpdatePeers();
+      document.getElementById('mpChatBtn').style.display = msg.settings && msg.settings.chat === false ? 'none' : '';
+      document.getElementById('mpLeaveBtn').style.display = '';
+      mpApplySettings(msg.settings);
+      mpAddChatMsg('', (mpIsHost ? 'room ' + mpRoomId + ' opened, you are host' : 'joined room ' + mpRoomId) +
+        (msg.settings && msg.settings.locked ? ' (locked)' : ''), { sys: true });
+      if (msg.settings && msg.settings.nav === 'host' && !mpIsHost) {
+        mpAddChatMsg('', 'only the host can change the page in this room', { sys: true });
+      }
+      if (msg.currentUrl && activeTab) loadUrl(activeTab, msg.currentUrl);
+      break;
+    case 'peer-joined':
+      mpPeers = msg.peers || mpPeers;
+      mpUpdatePeers();
+      mpSetStatus(mpStatusText(), mpIsHost ? 'hosting' : 'connected');
+      mpAddChatMsg('', (msg.peer ? msg.peer.name : 'someone') + ' joined', { sys: true });
+      break;
+    case 'peer-left': {
+      const gone = mpPeers.find(p => p.id === msg.id);
+      mpPeers = msg.peers || mpPeers;
+      mpUpdatePeers();
+      mpRemoveCursor(msg.id);
+      mpSetStatus(mpStatusText(), mpIsHost ? 'hosting' : 'connected');
+      mpAddChatMsg('', (gone ? gone.name : 'someone') + ' left', { sys: true });
+      break;
+    }
+    case 'room-info':
+      mpApplySettings(msg.settings);
+      break;
+    case 'peer-renamed':
+      mpPeers = msg.peers || mpPeers;
+      mpUpdatePeers();
+      if (msg.id === mpPeerId) { mpMyName = msg.name; mpSetWho(); }
+      break;
+    case 'navigate':
+      if (msg.by !== mpPeerId && activeTab) loadUrl(activeTab, msg.url);
+      break;
+    case 'chat':
+      mpAddChatMsg(msg.from, msg.text, { color: mpCursorColor(msg.id || msg.from || 'x'), ts: msg.ts });
+      break;
+    case 'cursor':
+      if (msg.id !== mpPeerId) mpUpsertCursor(msg.id, msg.name, msg.x, msg.y);
+      break;
+    case 'host-changed':
+      mpIsHost = (msg.host === mpPeerId);
+      mpSetStatus(mpIsHost ? 'Hosting ' + mpRoomId : 'Connected to ' + mpRoomId, mpIsHost ? 'hosting' : 'connected');
+      break;
+  }
+}
+
+// ===== LIVE CURSORS =====
+const mpCursorEls = new Map();
+let mpLastCursorSend = 0;
+
+function mpCursorColor(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
+  return 'hsl(' + h + ',85%,62%)';
+}
+
+function mpCursorRoot() {
+  let root = document.getElementById('mpCursorLayer');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'mpCursorLayer';
+    root.className = 'mp-cursor-layer';
+    document.body.appendChild(root);
+  }
+  return root;
+}
+
+function mpUpsertCursor(id, name, x, y) {
+  if (!id) return;
+  let el = mpCursorEls.get(id);
+  if (!el) {
+    const color = mpCursorColor(id);
+    el = document.createElement('div');
+    el.className = 'mp-cursor';
+    el.innerHTML = '<svg viewBox="0 0 12 18" width="14" height="20" aria-hidden="true">' +
+      '<path d="M1 1 L1 15 L4.9 11.6 L7.4 17 L9.8 15.9 L7.3 10.5 L12 10 Z" fill="' + color +
+      '" stroke="#0b0b12" stroke-width="1.2" stroke-linejoin="round"/></svg>' +
+      '<span class="mp-cursor-label"></span>';
+    el.querySelector('.mp-cursor-label').style.background = color;
+    mpCursorRoot().appendChild(el);
+    mpCursorEls.set(id, el);
+  }
+  const label = el.querySelector('.mp-cursor-label');
+  const niceName = name || 'peer';
+  if (label.textContent !== niceName) label.textContent = niceName;
+  el.style.left = (Math.max(0, Math.min(1, x)) * 100) + '%';
+  el.style.top = (Math.max(0, Math.min(1, y)) * 100) + '%';
+  el.classList.add('live');
+  clearTimeout(el._hideT);
+  el._hideT = setTimeout(() => el.classList.remove('live'), 4000);
+}
+
+function mpRemoveCursor(id) {
+  const el = mpCursorEls.get(id);
+  if (el) { clearTimeout(el._hideT); el.remove(); mpCursorEls.delete(id); }
+}
+
+function mpClearCursors() {
+  for (const el of mpCursorEls.values()) { clearTimeout(el._hideT); el.remove(); }
+  mpCursorEls.clear();
+}
+
+// normalized 0..1 coords, throttled to ~20/s
+function mpSendCursor(x, y) {
+  if (!mpCursorsAllowed) return;
+  if (!mpWs || mpWs.readyState !== WebSocket.OPEN) return;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  const now = Date.now();
+  if (now - mpLastCursorSend < 33) return;
+  mpLastCursorSend = now;
+  mpWs.send(JSON.stringify({
+    type: 'cursor',
+    x: Math.round(x * 1000) / 1000,
+    y: Math.round(y * 1000) / 1000,
+  }));
+}
+
+document.addEventListener('mousemove', (e) => {
+  mpSendCursor(e.clientX / Math.max(1, window.innerWidth), e.clientY / Math.max(1, window.innerHeight));
+}, { passive: true });
+
+function mpSetStatus(text, cls) {
+  const el = document.getElementById('mpStatus');
+  el.textContent = text;
+  el.className = 'mp-status ' + cls;
+}
+
+function mpUpdatePeers() {
+  const container = document.getElementById('mpPeers');
+  container.innerHTML = '';
+  mpPeers.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'mp-peer';
+    el.title = p.name;
+    el.textContent = p.name.charAt(0).toUpperCase();
+    container.appendChild(el);
+  });
+}
+
+function mpLeave() {
+  mpLeavingType = true;
+  if (mpWs) { try { mpWs.close(1000, 'left'); } catch {} mpWs = null; }
+  mpClearCursors();
+  mpResetRoom();
+  mpSetStatus('Not connected', '');
+  mpAddChatMsg('', 'left the room', { sys: true });
+}
+
+let mpLeavingType = false;
+
+function mpToggleChat() {
+  const panel = document.getElementById('mpChat');
+  if (!panel) return;
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    mpClearUnread();
+    const input = document.getElementById('mpChatInput');
+    if (input) setTimeout(() => input.focus(), 30);
+  }
+}
+
+let mpMyName = '';
+let mpUnread = 0;
+
+function mpSetWho() {
+  const el = document.getElementById('mpChatWho');
+  if (el) el.textContent = (mpMyName || 'you') + ' (you)';
+}
+
+function mpRename() {
+  const name = prompt('your name in this room:', mpMyName || '');
+  if (!name) return;
+  const clean = name.trim().slice(0, 24);
+  if (!clean) return;
+  mpMyName = clean;
+  mpSetWho();
+  if (mpWs && mpWs.readyState === WebSocket.OPEN) mpWs.send(JSON.stringify({ type: 'name', name: clean }));
+}
+
+function mpChatKey(e) {
+  if (e.key === 'Enter') { e.preventDefault(); mpSendChat(); }
+  else if (e.key === 'Escape') { e.preventDefault(); mpToggleChat(); }
+  e.stopPropagation();
+}
+
+function mpSendChat() {
+  const input = document.getElementById('mpChatInput');
+  if (!input) return;
+  const text = input.value.trim().slice(0, 500);
+  if (!text) return;
+  input.value = '';
+  if (!mpWs || mpWs.readyState !== WebSocket.OPEN) return;
+  mpWs.send(JSON.stringify({ type: 'chat', text }));
+  mpAddChatMsg((mpMyName || 'you') + ' (you)', text, { me: true });
+  input.focus();
+}
+
+function mpFmtTime(ts) {
+  try {
+    return new Date(ts || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
+
+function mpAddChatMsg(name, text, opts = {}) {
+  const container = document.getElementById('mpChatMessages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'mp-chat-msg' + (opts.sys ? ' sys' : '') + (opts.me ? ' me' : '');
+  if (opts.sys) {
+    div.textContent = text;
+  } else {
+    const ts = document.createElement('span');
+    ts.className = 'ts';
+    ts.textContent = mpFmtTime(opts.ts);
+    const nm = document.createElement('span');
+    nm.className = 'name';
+    nm.textContent = name + ':';
+    if (opts.color) nm.style.color = opts.color;
+    div.appendChild(ts);
+    div.appendChild(nm);
+    div.appendChild(document.createTextNode(' ' + text));
+  }
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  if (!opts.me && !opts.sys) {
+    const panel = document.getElementById('mpChat');
+    if (!panel || !panel.classList.contains('open')) mpBumpUnread();
+  }
+}
+
+function mpBumpUnread() {
+  mpUnread++;
+  const btn = document.getElementById('mpChatBtn');
+  if (!btn) return;
+  let badge = btn.querySelector('.mp-chat-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'mp-chat-badge';
+    btn.appendChild(badge);
+  }
+  badge.textContent = mpUnread > 9 ? '9+' : String(mpUnread);
+}
+
+function mpClearUnread() {
+  mpUnread = 0;
+  const btn = document.getElementById('mpChatBtn');
+  if (!btn) return;
+  const badge = btn.querySelector('.mp-chat-badge');
+  if (badge) badge.remove();
+}
+
+// Hook into loadUrl to broadcast navigation
+const _origLoadUrlMp = loadUrl;
+loadUrl = function(tab, url) {
+  _origLoadUrlMp(tab, url);
+  if (mpWs && mpWs.readyState === WebSocket.OPEN && tab === activeTab) {
+    if (mpRoomSettings.nav === 'host' && !mpIsHost) return;
+    mpWs.send(JSON.stringify({ type: 'navigate', url: url }));
+  }
 };
 
-renderBookmarks();
+// ?join=CODE invite links open the join panel prefilled
+(function mpAutoJoin() {
+  const p = new URLSearchParams(location.search);
+  const code = (p.get('join') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  if (!code) return;
+  setTimeout(() => mpJoin(code, p.get('pw') || '', ''), 250);
+})();
+
+// ===== ZOOM =====
+function zoomIn() { if (!activeTab) return; activeTab.zoom = Math.min(3, (activeTab.zoom || 1) + 0.1); applyZoom(); }
+function zoomOut() { if (!activeTab) return; activeTab.zoom = Math.max(0.3, (activeTab.zoom || 1) - 0.1); applyZoom(); }
+function applyZoom() {
+  if (!activeTab) return;
+  const iframe = document.querySelector('iframe');
+  if (iframe) {
+    iframe.style.transform = 'scale(' + activeTab.zoom + ')';
+    iframe.style.transformOrigin = 'top left';
+    iframe.style.width = (100 / activeTab.zoom) + '%';
+    iframe.style.height = (100 / activeTab.zoom) + '%';
+  }
+  const zl = document.getElementById('zoomLevel');
+  if (zl) zl.textContent = Math.round(activeTab.zoom * 100) + '%';
+}
+
+// ===== HOME =====
+function goHome() { if (!activeTab) return; loadUrl(activeTab, settings.homepage || 'https://www.google.com'); }
+
+// ===== TAB PINNING =====
+function togglePin(id, e) {
+  if (e) e.stopPropagation();
+  const tab = tabs.find(t => t.id === id);
+  if (!tab) return;
+  tab.pinned = !tab.pinned;
+  renderTabs();
+}
+
+// ===== VIEW SOURCE =====
+async function viewSource() {
+  if (!activeTab || !activeTab.url) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'source-overlay';
+  overlay.innerHTML = '<div class="source-panel"><div class="source-header"><h3>View Source</h3><button class="source-close" onclick="closeSourceOverlay()">X</button></div><div class="source-body"><pre>Loading...</pre></div></div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSourceOverlay(); });
+  try {
+    const resp = await fetch(PROXY + encodeURIComponent(activeTab.url));
+    const html = await resp.text();
+    overlay.querySelector('pre').textContent = html;
+  } catch (err) {
+    overlay.querySelector('pre').textContent = 'Error: ' + err.message;
+  }
+}
+function closeSourceOverlay() {
+  const overlay = document.querySelector('.source-overlay');
+  if (overlay) overlay.remove();
+}
+
+// ===== FIND IN PAGE =====
+let findBar = null;
+let findMatches = [];
+let findIdx = 0;
+function toggleFindBar() {
+  if (findBar) { closeFindBar(); return; }
+  const container = document.getElementById('findBarContainer');
+  findBar = document.createElement('div');
+  findBar.className = 'find-bar';
+  findBar.innerHTML = '<input type="text" id="findInput" placeholder="Find in page..." oninput="doFind()" onkeydown="if(event.key===\'Enter\')findNext(); if(event.key===\'Escape\')closeFindBar();"><button onclick="findPrev()">Up</button><button onclick="findNext()">Down</button><span class="find-count" id="findCount"></span><button onclick="closeFindBar()">X</button>';
+  container.appendChild(findBar);
+  document.getElementById('findInput').focus();
+}
+function closeFindBar() {
+  if (findBar) { findBar.remove(); findBar = null; }
+  findMatches = []; findIdx = 0;
+  const iframe = document.querySelector('iframe');
+  if (iframe && iframe.contentDocument) {
+    try {
+      const marks = iframe.contentDocument.querySelectorAll('mark.find-highlight');
+      marks.forEach(m => { const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize(); });
+    } catch {}
+  }
+}
+function doFind() {
+  const query = document.getElementById('findInput').value;
+  const iframe = document.querySelector('iframe');
+  if (!iframe || !iframe.contentDocument || !query) { document.getElementById('findCount').textContent = ''; return; }
+  try {
+    const doc = iframe.contentDocument;
+    const oldMarks = doc.querySelectorAll('mark.find-highlight');
+    oldMarks.forEach(m => { const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize(); });
+    findMatches = []; findIdx = 0;
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null, false);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    textNodes.forEach(node => {
+      const text = node.textContent;
+      const lower = text.toLowerCase();
+      const qLower = query.toLowerCase();
+      let idx = lower.indexOf(qLower);
+      if (idx === -1) return;
+      const frag = doc.createDocumentFragment();
+      let lastIdx = 0;
+      while (idx !== -1) {
+        frag.appendChild(doc.createTextNode(text.slice(lastIdx, idx)));
+        const mark = doc.createElement('mark');
+        mark.className = 'find-highlight';
+        mark.style.background = '#ffd700';
+        mark.style.color = '#000';
+        mark.textContent = text.slice(idx, idx + query.length);
+        frag.appendChild(mark);
+        findMatches.push(mark);
+        lastIdx = idx + query.length;
+        idx = lower.indexOf(qLower, lastIdx);
+      }
+      frag.appendChild(doc.createTextNode(text.slice(lastIdx)));
+      node.parentNode.replaceChild(frag, node);
+    });
+    document.getElementById('findCount').textContent = findMatches.length > 0 ? (findIdx + 1) + '/' + findMatches.length : '0 results';
+    if (findMatches.length > 0) findMatches[0].scrollIntoView({ block: 'center' });
+  } catch (e) {
+    document.getElementById('findCount').textContent = 'error';
+  }
+}
+function findNext() {
+  if (findMatches.length === 0) return;
+  findIdx = (findIdx + 1) % findMatches.length;
+  findMatches[findIdx].scrollIntoView({ block: 'center' });
+  document.getElementById('findCount').textContent = (findIdx + 1) + '/' + findMatches.length;
+}
+function findPrev() {
+  if (findMatches.length === 0) return;
+  findIdx = (findIdx - 1 + findMatches.length) % findMatches.length;
+  findMatches[findIdx].scrollIntoView({ block: 'center' });
+  document.getElementById('findCount').textContent = (findIdx + 1) + '/' + findMatches.length;
+}
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); toggleFindBar(); }
+  if (e.key === 'Escape' && findBar) closeFindBar();
+});
+
+// Patch renderTabs to include pin
+const _origRenderTabs = renderTabs;
+renderTabs = function() {
+  _origRenderTabs();
+};
 </script>
 </body>
 </html>
