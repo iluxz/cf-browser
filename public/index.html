@@ -757,11 +757,15 @@ window.addEventListener('message', (e) => {
   if (data.type === 'pageerror') {
     const frame = tab.frame;
     if (!frame || !frame.isConnected) return;
-    let visibleText = '';
-    try { visibleText = (frame.contentDocument.body.innerText || '').trim(); } catch { return; }
-    if (visibleText.length > 120) return; // page still has content, the error is non-fatal
-    const msg = String(data.message || 'script error').replace(/^Uncaught\s+/i, '').slice(0, 120);
-    showProxyHint(tab.url, 'this page crashed inside the proxy: ' + msg);
+    const url = tab.url;
+    setTimeout(() => {
+      if (!frame.isConnected || tab.frame !== frame || tab.url !== url) return;
+      let visibleText = '';
+      try { visibleText = (frame.contentDocument.body.innerText || '').trim(); } catch { return; }
+      if (visibleText.length > 120) return;
+      showProxyHint(url, 'this page may need JavaScript that cannot run through the proxy');
+    }, 1500);
+    return;
   }
 });
 
