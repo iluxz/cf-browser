@@ -386,6 +386,50 @@
   /* ===== SCREEN SHARE VIEW ===== */
   #mpShareView video { background: #000; }
 
+  /* ===== MULTIPLAYER OVERLAY ===== */
+  .mp-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .mp-panel {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-lg);
+    padding: 24px; width: 360px; max-width: 90vw; text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .mp-panel-wide { width: 420px; }
+  .mp-panel h2 { color: var(--accent); margin-bottom: 12px; font-size: 18px; }
+  .mp-panel p { color: var(--text2); font-size: 12px; margin-bottom: 12px; }
+  .mp-panel input {
+    width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border2);
+    background: var(--bg3); color: var(--text); font-size: 13px; margin-bottom: 12px; outline: none;
+    transition: border-color var(--transition);
+  }
+  .mp-panel input:focus { border-color: var(--accent); }
+  .mp-panel button {
+    padding: 8px 16px; border-radius: var(--radius-sm); border: none;
+    background: var(--accent); color: #fff; cursor: pointer; font-size: 13px; margin: 4px; font-weight: 500;
+    transition: background var(--transition);
+  }
+  .mp-panel button:hover { background: var(--accent2); }
+  .mp-panel button.secondary { background: var(--surface2); color: var(--text2); }
+  .mp-panel button.secondary:hover { background: var(--border2); color: var(--text); }
+  .mp-panel .code-display {
+    font-size: 24px; font-weight: 800; color: var(--warn); letter-spacing: 4px; margin: 12px 0;
+  }
+  .mp-fields { display: flex; gap: 12px; margin-bottom: 8px; }
+  .mp-fields label { flex: 1; text-align: left; font-size: 11px; color: var(--text3); }
+  .mp-fields input { margin-bottom: 0; }
+  .mp-toggles { display: flex; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
+  .mp-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); cursor: pointer; }
+  .mp-check input { width: auto; margin: 0; }
+  .mp-hint { color: var(--text3); font-size: 11px; margin-top: 8px; }
+  .mp-err { color: var(--danger); font-size: 12px; margin-bottom: 12px; }
+  .mp-panel select {
+    width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border2);
+    background: var(--bg3); color: var(--text); font-size: 13px; margin-bottom: 12px; outline: none;
+  }
+
   /* ===== SCROLLBAR ===== */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
