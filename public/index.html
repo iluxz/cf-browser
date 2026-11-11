@@ -128,8 +128,15 @@
     display: flex; align-items: center; justify-content: center;
     transition: background var(--transition), color var(--transition);
   }
-  .star-btn:hover, .settings-btn:hover { background: var(--surface); color: var(--text); }
-  .star-btn.starred { color: var(--warn); }
+  .zoom-btn, .home-btn, .source-close {
+    width: 30px; height: 30px; border-radius: var(--radius-sm); border: none;
+    background: transparent; color: var(--text2); cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background var(--transition), color var(--transition);
+  }
+  .zoom-btn:hover, .home-btn:hover, .source-close:hover {
+    background: var(--surface); color: var(--text);
+  }
 
   /* ===== BOOKMARKS BAR ===== */
   .bookmarks-bar {
@@ -454,6 +461,8 @@
   }
   .find-bar button:hover { background: var(--border2); color: var(--text); }
   .find-count { font-size: 11px; color: var(--text3); min-width: 40px; text-align: center; }
+  .zoom-controls { display: flex; align-items: center; gap: 4px; }
+  .zoom-level { font-size: 11px; color: var(--text3); min-width: 36px; text-align: center; }
 
   /* ===== THEMES ===== */
   body.theme-light { background: #f0f0f5; color: #1a1a2e; }
