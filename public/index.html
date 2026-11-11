@@ -869,12 +869,12 @@ function showCfbPage(tab, page) {
       break;
     case 'search':
       html = '<div class="cfb-page"><h1>Search</h1>' +
-        '<p style="color:#888;font-size:12px;margin-bottom:14px;">lightweight search using bing (the engine that works through the proxy).</p>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:14px;">search the web. results are fetched and displayed here (no bing homepage needed).</p>' +
         '<div style="display:flex;gap:8px;margin-bottom:16px;">' +
         '<input id="cfbSearchInput" type="text" placeholder="search the web..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:13px;" onkeydown="if(event.key===\'Enter\')cfbSearch()">' +
         '<button onclick="cfbSearch()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Search</button>' +
         '</div>' +
-        '<p style="color:#666;font-size:11px;">results open in a new tab via bing.</p>' +
+        '<div id="cfbSearchResults"></div>' +
         '</div>';
       break;
     case 'news':
@@ -1043,12 +1043,43 @@ function tttMode(m) { tttState.mode = m; tttReset(); }
 function tttReset() { tttState = { board: Array(9).fill(''), turn: 'X', mode: tttState.mode, over: false, winner: null }; tttRender(); }
 
 // ===== SEARCH =====
-function cfbSearch() {
+async function cfbSearch() {
   const inp = document.getElementById('cfbSearchInput');
-  if (!inp) return;
+  const res = document.getElementById('cfbSearchResults');
+  if (!inp || !res) return;
   const q = inp.value.trim();
   if (!q) return;
-  loadUrl(activeTab, 'https://www.bing.com/search?q=' + encodeURIComponent(q));
+  res.innerHTML = '<p style="color:#888;">searching...</p>';
+  try {
+    const proxyUrl = '/api/proxy?url=' + encodeURIComponent('https://www.bing.com/search?q=' + encodeURIComponent(q));
+    const r = await fetch(proxyUrl);
+    const html = await r.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    // bing results: .b_algo contains title (h2 a), url (cite), snippet (p or .b_caption p)
+    const items = doc.querySelectorAll('.b_algo');
+    if (!items.length) {
+      // fallback: show raw text
+      res.innerHTML = '<p style="color:#888;">no parsed results. <a href="#" onclick="loadUrl(activeTab,\'https://www.bing.com/search?q=' + encodeURIComponent(q) + '\');return false;" style="color:#7c5cff;">open results page</a></p>';
+      return;
+    }
+    let out = '';
+    items.forEach(item => {
+      const a = item.querySelector('h2 a');
+      const cite = item.querySelector('cite');
+      const snippet = item.querySelector('.b_caption p, p');
+      if (!a) return;
+      const title = a.textContent.trim();
+      const href = a.getAttribute('href') || '';
+      const url = cite ? cite.textContent.trim() : href;
+      const desc = snippet ? snippet.textContent.trim() : '';
+      out += '<div class="item"><div><div class="title">' + escapeHtml(title) + '</div><div class="url">' + escapeHtml(url) + '</div>' +
+        (desc ? '<div style="color:#888;font-size:11px;margin-top:4px;">' + escapeHtml(desc.slice(0,200)) + '</div>' : '') +
+        '</div><button onclick="loadUrl(activeTab,\'' + href.replace(/'/g, "\\'") + '\')">Open</button></div>';
+    });
+    res.innerHTML = out || '<p style="color:#888;">no results found.</p>';
+  } catch (e) {
+    res.innerHTML = '<p style="color:#e2685f;">search failed: ' + escapeHtml(e.message) + '</p>';
+  }
 }
 
 // hook tictactoe init into showCfbPage
