@@ -671,7 +671,7 @@ function loadUrl(tab, url) {
       url = 'https://' + url;
     } else {
       // duckduckgo instead of google: google bans cloudflare worker IPs
-      url = 'https://duckduckgo.com/?q=' + encodeURIComponent(url);
+      url = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(url);
     }
   }
 
