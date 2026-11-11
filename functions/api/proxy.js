@@ -115,10 +115,16 @@ export async function onRequest(context) {
     window.location.replace = function(u) { window.parent.postMessage({ type: 'navigate', url: rewriteUrl(String(u)) }, '*'); };
   } catch (e) {}
   try {
-    // location.href setter
-    const loc = window.location;
-    // can't redefine location.href easily; instead poll is not great. Use a MutationObserver? 
-    // Fallback: keep form submit interception as a safety net.
+    const locProto = Object.getPrototypeOf(window.location);
+    const desc = Object.getOwnPropertyDescriptor(locProto, 'href');
+    if (desc && desc.set) {
+      Object.defineProperty(locProto, 'href', {
+        get: desc.get,
+        set: function(v) {
+          window.parent.postMessage({ type: 'navigate', url: rewriteUrl(String(v)) }, '*');
+        }
+      });
+    }
   } catch (e) {}
   // Intercept clicks on submit buttons in capture phase, before page JS can mutate form fields
   document.addEventListener('click', function(e) {
