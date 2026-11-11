@@ -740,6 +740,20 @@ window.addEventListener('message', (e) => {
     return;
   }
 
+  if (data.type === 'input') {
+    const frame = tab.frame;
+    if (!frame || !frame.isConnected) return;
+    mpSendInput(data);
+    return;
+  }
+
+  if (data.type === 'snapshot') {
+    const frame = tab.frame;
+    if (!frame || !frame.isConnected) return;
+    mpSendSnapshot(data.html);
+    return;
+  }
+
   if (data.type === 'pageerror') {
     const frame = tab.frame;
     if (!frame || !frame.isConnected) return;
@@ -1628,6 +1642,12 @@ function mpHandleMessage(msg) {
     case 'scroll':
       if (msg.id !== mpPeerId) mpApplyScroll(msg.y);
       break;
+    case 'input':
+      if (msg.id !== mpPeerId) mpApplyInput(msg);
+      break;
+    case 'snapshot':
+      if (msg.id !== mpPeerId) mpApplySnapshot(msg.html);
+      break;
     case 'wordle':
       if (msg.by === mpPeerId) break;
       wdlApplyRemote(msg.guess, msg.answer);
@@ -1716,6 +1736,40 @@ function mpShowClick(x, y) {
   setTimeout(() => { try { el.remove(); } catch (e) {} }, 700);
 }
 
+function mpApplyInput(msg) {
+  const frame = activeTab && activeTab.frame;
+  if (!frame || !frame.isConnected) return;
+  if (!mpFollow && !mpIsHost) return;
+  try {
+    const doc = frame.contentDocument;
+    const all = Array.from(doc.querySelectorAll('input, textarea, select'));
+    const el = all[msg.idx];
+    if (!el) return;
+    if (msg.checked !== null && msg.checked !== undefined) {
+      el.checked = !!msg.checked;
+    } else {
+      el.value = msg.value || '';
+    }
+    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+  } catch (e) {}
+}
+
+function mpApplySnapshot(html) {
+  const frame = activeTab && activeTab.frame;
+  if (!frame || !frame.isConnected) return;
+  if (!mpFollow && !mpIsHost) return;
+  if (typeof html !== 'string' || html.length > 40000) return;
+  try {
+    const doc = frame.contentDocument;
+    if (doc.body) {
+      const scrollY = frame.contentWindow ? frame.contentWindow.scrollY : 0;
+      doc.body.innerHTML = html;
+      if (frame.contentWindow) frame.contentWindow.scrollTo(0, scrollY);
+    }
+  } catch (e) {}
+}
+
 function mpApplyScroll(y) {
   if (!Number.isFinite(y)) return;
   if (!mpFollow && !mpIsHost) return;
@@ -1775,6 +1829,25 @@ function mpSendScroll(y) {
   if (now - mpLastScrollSend < 80) return;
   mpLastScrollSend = now;
   mpWs.send(JSON.stringify({ type: 'scroll', y: Math.max(0, Math.min(1, y)) }));
+}
+
+let mpLastInputSend = 0;
+function mpSendInput(d) {
+  if (!mpWs || mpWs.readyState !== WebSocket.OPEN) return;
+  const now = Date.now();
+  if (now - mpLastInputSend < 30) return;
+  mpLastInputSend = now;
+  mpWs.send(JSON.stringify({ type: 'input', idx: d.idx, tag: d.tag, itype: d.type, value: d.value, checked: d.checked }));
+}
+
+let mpLastSnapSend = 0;
+function mpSendSnapshot(html) {
+  if (!mpWs || mpWs.readyState !== WebSocket.OPEN) return;
+  if (typeof html !== 'string' || html.length > 40000) return;
+  const now = Date.now();
+  if (now - mpLastSnapSend < 1500) return;
+  mpLastSnapSend = now;
+  mpWs.send(JSON.stringify({ type: 'snapshot', html: html }));
 }
 
 document.addEventListener('mousemove', (e) => {

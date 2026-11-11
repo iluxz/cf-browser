@@ -119,6 +119,53 @@ export async function onRequest(context) {
       }, '*');
     } catch (err) {}
   }, true);
+  // Relay form input changes so peers see typing, toggles, and selections
+  function mpInputIndex(el) {
+    const all = Array.from(document.querySelectorAll('input, textarea, select'));
+    return all.indexOf(el);
+  }
+  function relayInput(el) {
+    if (!el) return;
+    const idx = mpInputIndex(el);
+    if (idx < 0) return;
+    const tag = el.tagName.toLowerCase();
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    let value = '';
+    let checked = null;
+    if (tag === 'input' && (type === 'checkbox' || type === 'radio')) {
+      checked = !!el.checked;
+    } else if (tag === 'select') {
+      value = el.value;
+    } else {
+      value = el.value;
+    }
+    try {
+      window.parent.postMessage({ type: 'input', idx, tag, type, value, checked }, '*');
+    } catch (e) {}
+  }
+  document.addEventListener('input', function(e) { relayInput(e.target); }, true);
+  document.addEventListener('change', function(e) { relayInput(e.target); }, true);
+  // Relay structural DOM changes as a throttled snapshot so peers see dynamic content
+  var lastSnap = 0;
+  var snapTimer = null;
+  function scheduleSnap() {
+    if (snapTimer) return;
+    snapTimer = setTimeout(function() {
+      snapTimer = null;
+      var now = Date.now();
+      if (now - lastSnap < 1500) return;
+      lastSnap = now;
+      try {
+        var html = document.body ? document.body.innerHTML : '';
+        if (html.length > 40000) return;
+        window.parent.postMessage({ type: 'snapshot', html: html }, '*');
+      } catch (e) {}
+    }, 400);
+  }
+  try {
+    var mo = new MutationObserver(function() { scheduleSnap(); });
+    if (document.body) mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+  } catch (e) {}
   // Relay scroll position so followers stay in sync
   var lastScroll = 0;
   window.addEventListener('scroll', function() {

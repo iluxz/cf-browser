@@ -190,6 +190,15 @@ export class Room {
           if (settings.nav === 'off') return;
           this.broadcast({ type: 'scroll', id, y: Math.max(0, Math.min(1, Number(msg.y) || 0)) }, ws);
           break;
+        case 'input':
+          if (settings.nav === 'off') return;
+          this.broadcast({ type: 'input', id, idx: Number(msg.idx) || 0, tag: String(msg.tag || ''), itype: String(msg.itype || ''), value: String(msg.value || '').slice(0, 500), checked: (msg.checked === null || msg.checked === undefined) ? null : !!msg.checked }, ws);
+          break;
+        case 'snapshot':
+          if (settings.nav === 'off') return;
+          if (typeof msg.html !== 'string' || msg.html.length > 40000) return;
+          this.broadcast({ type: 'snapshot', id, html: msg.html }, ws);
+          break;
         case 'wordle':
           this.broadcast({ type: 'wordle', guess: String(msg.guess || '').slice(0, 5), answer: String(msg.answer || '').slice(0, 5), by: id }, ws);
           break;
