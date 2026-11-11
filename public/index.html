@@ -418,15 +418,13 @@ function clearProxyHint() {
   if (el) el.remove();
 }
 
-function showProxyHint(url, reason) {
+function showProxyHint(url, message) {
   clearProxyHint();
   const bar = document.createElement('div');
   bar.id = 'proxyHint';
   bar.className = 'proxy-hint';
   const label = document.createElement('span');
-  label.textContent = reason
-    ? 'this page crashed inside the proxy: ' + reason
-    : 'this page came back blank — it probably needs javascript the proxy cannot run.';
+  label.textContent = message || 'this page came back blank — it probably needs javascript the proxy cannot run.';
   const open = document.createElement('button');
   open.textContent = 'open without proxy';
   open.onclick = () => window.open(url, '_blank', 'noopener');
@@ -438,21 +436,34 @@ function showProxyHint(url, reason) {
   document.body.appendChild(bar);
 }
 
+const CAPTCHA_SEL = 'iframe[src*="recaptcha"], iframe[src*="hcaptcha"], iframe[src*="challenges.cloudflare.com"], iframe[src*="turnstile"], iframe[src*="arkoselabs"], .g-recaptcha, .h-captcha, .cf-turnstile';
+const WALL_TEXT = /invalid domain for site key|error for site owner|prove your humanity|verify (that )?you are (a )?human|unusual traffic|checking your browser|captcha/i;
+
 function checkBlank(tab, frame, url) {
   if (!tab || tab !== activeTab || tab.frame !== frame) return;
+  let doc;
+  try { doc = frame.contentDocument; } catch { return; }
+  if (!doc || !doc.body) return;
+
+  const text = (doc.body.innerText || '').trim();
+
+  // captcha / bot walls can never work through a proxy: the widget checks that the
+  // page's domain matches the key's registered domain, and our domain is pages.dev
+  let captcha = false;
+  try { captcha = !!doc.querySelector(CAPTCHA_SEL); } catch {}
+  if (captcha || WALL_TEXT.test(text.slice(0, 4000))) {
+    showProxyHint(url, 'this site runs a captcha or bot wall tied to its own domain — a proxy can never pass it. open it directly instead.');
+    return;
+  }
+
   let empty = false;
-  try {
-    const doc = frame.contentDocument;
-    if (!doc || !doc.body) return;
-    const text = (doc.body.innerText || '').trim();
-    const media = Array.from(doc.querySelectorAll('img, video, canvas, svg, picture, iframe')).some(el => {
-      try {
-        const r = el.getBoundingClientRect();
-        return r.width > 40 && r.height > 40;
-      } catch { return false; }
-    });
-    empty = text.length === 0 && !media;
-  } catch { return; }
+  const media = Array.from(doc.querySelectorAll('img, video, canvas, svg, picture, iframe')).some(el => {
+    try {
+      const r = el.getBoundingClientRect();
+      return r.width > 40 && r.height > 40;
+    } catch { return false; }
+  });
+  empty = text.length === 0 && !media;
   if (empty) showProxyHint(url);
 }
 
@@ -597,7 +608,7 @@ window.addEventListener('message', (e) => {
     try { visibleText = (frame.contentDocument.body.innerText || '').trim(); } catch { return; }
     if (visibleText.length > 40) return; // page still has content, don't nag
     const msg = String(data.message || 'script error').replace(/^Uncaught\s+/i, '').slice(0, 120);
-    showProxyHint(tab.url, msg);
+    showProxyHint(tab.url, 'this page crashed inside the proxy: ' + msg);
   }
 });
 
