@@ -382,6 +382,7 @@ let tabCounter = 0;
 
 const SHORTCUTS = [
   { icon: '🟩', label: 'Wordle', cfb: 'wordle' },
+  { icon: '📋', label: 'Sites', cfb: 'websites' },
   { icon: '📖', label: 'Wikipedia', url: 'https://en.wikipedia.org' },
   { icon: '🐙', label: 'GitHub', url: 'https://github.com' },
   { icon: '🔍', label: 'DuckDuckGo', url: 'https://duckduckgo.com' },
@@ -830,14 +831,55 @@ function showCfbPage(tab, page) {
     case 'wordle':
       html = wdlPage();
       break;
+    case 'websites':
+      html = '<div class="cfb-page"><h1>Sites that work</h1>' +
+        '<p style="color:#888;font-size:12px;margin-bottom:14px;">tested against the live proxy. a site works if its html already contains the content.</p>' +
+        '<h3 style="color:#7c5cff;font-size:13px;margin:12px 0 6px;">works great</h3>' +
+        '<div class="item"><div class="title">wikipedia.org</div><div class="url">full articles</div></div>' +
+        '<div class="item"><div class="title">github.com</div><div class="url">repos, code, profiles</div></div>' +
+        '<div class="item"><div class="title">developer.mozilla.org</div><div class="url">full docs</div></div>' +
+        '<div class="item"><div class="title">docs.python.org</div><div class="url">full docs</div></div>' +
+        '<div class="item"><div class="title">theguardian.com</div><div class="url">full articles</div></div>' +
+        '<div class="item"><div class="title">npr.org</div><div class="url">full articles</div></div>' +
+        '<div class="item"><div class="title">arstechnica.com</div><div class="url">full articles</div></div>' +
+        '<div class="item"><div class="title">hackaday.com</div><div class="url">full articles</div></div>' +
+        '<div class="item"><div class="title">lobste.rs</div><div class="url">fully renders</div></div>' +
+        '<div class="item"><div class="title">itch.io</div><div class="url">store pages</div></div>' +
+        '<div class="item"><div class="title">gutenberg.org</div><div class="url">full books</div></div>' +
+        '<div class="item"><div class="title">craigslist.org</div><div class="url">listings</div></div>' +
+        '<div class="item"><div class="title">search.marginalia.nu</div><div class="url">works</div></div>' +
+        '<div class="item"><div class="title">bing.com</div><div class="url">search results render</div></div>' +
+        '<div class="item"><div class="title">duckduckgo.com</div><div class="url">captcha wall now</div></div>' +
+        '<div class="item"><div class="title">neal.fun</div><div class="url">works</div></div>' +
+        '<div class="item"><div class="title">spacejam.com/1996</div><div class="url">the whole 1996 site</div></div>' +
+        '<div class="item"><div class="title">cloudflare.com</div><div class="url">everything</div></div>' +
+        '<h3 style="color:#e2685f;font-size:13px;margin:16px 0 6px;">dead on arrival (bot wall)</h3>' +
+        '<div class="item"><div class="title">reddit.com</div><div class="url">blocked by network security</div></div>' +
+        '<div class="item"><div class="title">old.reddit.com</div><div class="url">same block</div></div>' +
+        '<div class="item"><div class="title">stackoverflow.com</div><div class="url">cloudflare challenge</div></div>' +
+        '<div class="item"><div class="title">apnews.com</div><div class="url">just a moment...</div></div>' +
+        '<div class="item"><div class="title">bbc.com/news</div><div class="url">access denied</div></div>' +
+        '<div class="item"><div class="title">amazon.com</div><div class="url">blank, needs js</div></div>' +
+        '<div class="item"><div class="title">ebay.com</div><div class="url">something went wrong</div></div>' +
+        '<div class="item"><div class="title">news.ycombinator.com</div><div class="url">returns Sorry</div></div>' +
+        '<div class="item"><div class="title">mcmansionhell.com</div><div class="url">checking your browser</div></div>' +
+        '<div class="item"><div class="title">scratch.mit.edu</div><div class="url">js-only</div></div>' +
+        '<h3 style="color:#b39321;font-size:13px;margin:16px 0 6px;">half dead (shell loads, content does not)</h3>' +
+        '<div class="item"><div class="title">twitter.com / x.com</div><div class="url">login wall only</div></div>' +
+        '<div class="item"><div class="title">roblox.com</div><div class="url">footer + nav only</div></div>' +
+        '<div class="item"><div class="title">youtube.com</div><div class="url">blank (crashes on history api)</div></div>' +
+        '<div class="item"><div class="title">reuters.com</div><div class="url">blank</div></div>' +
+        '<p style="color:#666;font-size:11px;margin-top:16px;">rule: a site works if its html already contains the content. it dies if it is a js app, behind cloudflare/akamai bot protection, behind a login, or uses a captcha (captchas check the page domain against the key, and a proxy domain is always wrong).</p>' +
+        '</div>';
+      break;
     case 'about':
 html = '<div class="cfb-page"><div class="about"><div class="logo">🌐</div><h1>CF Browser</h1><p>Version 1.0</p><p>Powered by Cloudflare Pages + Workers</p><p style="margin-top:16px;color:#555;font-size:11px;">' +
-      ['settings','bookmarks','history','cookies','wordle','about'].map(p =>
+      ['settings','bookmarks','history','cookies','wordle','websites','about'].map(p =>
         '<span style="cursor:pointer;color:#7c5cff;" onclick="openCfb(\'' + p + '\')">' + p + '</span>').join(' · ') +
       '</p></div></div>';
       break;
     default:
-      html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, wordle, about</p></div>';
+      html = '<div class="cfb-page"><h1>Unknown page</h1><p style="color:#aaa;">cfb::' + escapeHtml(page) + ' is not valid.</p><p style="color:#666;font-size:12px;margin-top:12px;">Available: settings, bookmarks, history, cookies, wordle, websites, about</p></div>';
   }
   const view = tabView(tab);
   view.innerHTML = html;
