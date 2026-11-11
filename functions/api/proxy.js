@@ -10,6 +10,7 @@ export async function onRequest(context) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': '*',
+        'Access-Control-Expose-Headers': 'X-Set-Cookies',
       },
     });
   }
@@ -31,15 +32,30 @@ export async function onRequest(context) {
   }
 
   try {
+    const clientCookies = request.headers.get('X-Cookies') || '';
+    const fetchHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.5',
+    };
+    if (clientCookies) fetchHeaders['Cookie'] = clientCookies;
+
     const resp = await fetch(targetUrl.toString(), {
       method: request.method,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-      },
+      headers: fetchHeaders,
       redirect: 'follow',
     });
+
+    // Collect Set-Cookie headers
+    const setCookies = [];
+    const rawSetCookie = resp.headers.get('set-cookie');
+    if (rawSetCookie) {
+      const parts = rawSetCookie.split(/,(?=[^;]+?=)/);
+      parts.forEach(c => {
+        const trimmed = c.trim();
+        if (trimmed) setCookies.push(trimmed);
+      });
+    }
 
     const contentType = resp.headers.get('content-type') || '';
     const isHtml = contentType.includes('text/html');
@@ -47,12 +63,16 @@ export async function onRequest(context) {
     if (!isHtml) {
       // Pass through non-HTML (images, css, js) with CORS headers
       const body = await resp.arrayBuffer();
+      const nhHeaders = {
+        'Content-Type': contentType,
+        'Access-Control-Allow-Origin': '*',
+      };
+      if (setCookies.length > 0) {
+        nhHeaders['X-Set-Cookies'] = JSON.stringify(setCookies);
+      }
       return new Response(body, {
         status: resp.status,
-        headers: {
-          'Content-Type': contentType,
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: nhHeaders,
       });
     }
 
@@ -70,7 +90,7 @@ export async function onRequest(context) {
   function rewriteUrl(u) {
     if (!u || u.startsWith('data:') || u.startsWith('blob:') || u.startsWith('javascript:') || u.startsWith('#')) return u;
     try {
-      const resolved = new URL(u, window.location.href).href;
+      const resolved = new URL(u, document.baseURI || window.location.href).href;
       if (resolved.startsWith(window.location.origin + '/api/proxy')) return u;
       return PROXY + encodeURIComponent(resolved);
     } catch { return u; }
@@ -99,12 +119,16 @@ export async function onRequest(context) {
     html = html.replace('</head>', proxyScript + '</head>');
 
     // Strip X-Frame-Options and CSP by not forwarding them
+    const respHeaders = {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+    };
+    if (setCookies.length > 0) {
+      respHeaders['X-Set-Cookies'] = JSON.stringify(setCookies);
+    }
     return new Response(html, {
       status: resp.status,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: respHeaders,
     });
   } catch (err) {
     return new Response(`Proxy error: ${err.message}`, { status: 502 });

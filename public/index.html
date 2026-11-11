@@ -66,7 +66,7 @@
 
   /* Content area */
   .content {
-    height: calc(100vh - 108px); position: relative; background: #fff;
+    height: calc(100vh - 136px); position: relative; background: #fff;
   }
   .webview {
     width: 100%; height: 100%; border: none; background: #fff;
@@ -113,6 +113,18 @@
     height: 20px; background: #0f0f1a; display: flex; align-items: center;
     padding: 0 12px; font-size: 10px; color: #555; border-top: 1px solid #2a2a3e;
   }
+
+  /* Bookmarks bar */
+  .bookmarks-bar { height: 28px; background: #16162a; display: flex; align-items: center; padding: 0 8px; gap: 4px; border-bottom: 1px solid #2a2a3e; overflow-x: auto; font-size: 11px; }
+  .bookmarks-bar::-webkit-scrollbar { height: 0; }
+  .bookmark-item { padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; border: 1px solid transparent; }
+  .bookmark-item:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: #3a3a5e; }
+  .bookmark-item .bm-remove { opacity: 0; font-size: 10px; cursor: pointer; margin-left: 4px; }
+  .bookmark-item:hover .bm-remove { opacity: 0.6; }
+  .bookmark-item .bm-remove:hover { opacity: 1; color: #ff5a8a; }
+  .star-btn { width: 28px; height: 28px; border-radius: 6px; border: none; background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .star-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .star-btn.starred { color: #ffd700; }
 </style>
 </head>
 <body>
@@ -129,8 +141,10 @@
   <button class="nav-btn" onclick="reload()">↻</button>
   <input class="addr-input" id="addrInput" placeholder="Enter URL or search..." onkeydown="if(event.key==='Enter')navigate()">
   <button class="go-btn" onclick="navigate()">→</button>
+  <button class="star-btn" id="starBtn" onclick="toggleBookmark()" title="Bookmark">☆</button>
 </div>
 
+<div class="bookmarks-bar" id="bookmarksBar"></div>
 <div class="content" id="content"></div>
 
 <div class="statusbar" id="statusbar">Ready</div>
@@ -351,6 +365,66 @@ function reload() {
 
 // Initialize
 newTab();
+
+// ===== BOOKMARKS =====
+let bookmarks = [];
+try { bookmarks = JSON.parse(localStorage.getItem('cfb_bookmarks') || '[]'); } catch {}
+
+function saveBookmarks() {
+  try { localStorage.setItem('cfb_bookmarks', JSON.stringify(bookmarks)); } catch {}
+}
+
+function toggleBookmark() {
+  if (!activeTab || !activeTab.url) return;
+  const idx = bookmarks.findIndex(b => b.url === activeTab.url);
+  if (idx === -1) {
+    bookmarks.push({ title: activeTab.title || activeTab.url, url: activeTab.url });
+  } else {
+    bookmarks.splice(idx, 1);
+  }
+  saveBookmarks();
+  renderBookmarks();
+  updateStarBtn();
+}
+
+function removeBookmark(url) {
+  bookmarks = bookmarks.filter(b => b.url !== url);
+  saveBookmarks();
+  renderBookmarks();
+  updateStarBtn();
+}
+
+function renderBookmarks() {
+  const bar = document.getElementById('bookmarksBar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  bookmarks.forEach(bm => {
+    const el = document.createElement('div');
+    el.className = 'bookmark-item';
+    el.title = bm.url;
+    el.innerHTML = '<span>' + (bm.title || '').slice(0, 20) + '</span><span class="bm-remove" onclick="removeBookmark(\'' + bm.url.replace(/'/g, "\\'") + '\', event)">×</span>';
+    el.onclick = function() { if (activeTab) loadUrl(activeTab, bm.url); };
+    bar.appendChild(el);
+  });
+}
+
+function updateStarBtn() {
+  const btn = document.getElementById('starBtn');
+  if (!btn) return;
+  if (!activeTab || !activeTab.url) { btn.textContent = '☆'; btn.classList.remove('starred'); return; }
+  const isBookmarked = bookmarks.some(b => b.url === activeTab.url);
+  btn.textContent = isBookmarked ? '★' : '☆';
+  btn.classList.toggle('starred', isBookmarked);
+}
+
+// Update star button on tab switch and load
+const _origSwitchTab_bm = switchTab;
+switchTab = function(id) {
+  _origSwitchTab_bm(id);
+  updateStarBtn();
+};
+
+renderBookmarks();
 </script>
 </body>
 </html>
