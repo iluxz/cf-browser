@@ -758,13 +758,20 @@ window.addEventListener('message', (e) => {
     const frame = tab.frame;
     if (!frame || !frame.isConnected) return;
     const url = tab.url;
-    setTimeout(() => {
+    let attempts = 0;
+    const check = () => {
       if (!frame.isConnected || tab.frame !== frame || tab.url !== url) return;
       let visibleText = '';
       try { visibleText = (frame.contentDocument.body.innerText || '').trim(); } catch { return; }
-      if (visibleText.length > 120) return;
-      showProxyHint(url, 'this page may need JavaScript that cannot run through the proxy');
-    }, 1500);
+      if (visibleText.length > 120) return; // loaded fine
+      attempts++;
+      if (attempts < 4) {
+        setTimeout(check, 1500);
+      } else {
+        showProxyHint(url, 'this page may need JavaScript that cannot run through the proxy');
+      }
+    };
+    setTimeout(check, 1500);
     return;
   }
 });
