@@ -421,6 +421,30 @@ allCookies = allCookies.concat(sc.map(c => {
     window.WebSocket.CLOSING = OrigWS.CLOSING;
     window.WebSocket.CLOSED = OrigWS.CLOSED;
   } catch (e) {}
+  // Stub Service Workers (can't proxy, but prevent crashes)
+  try {
+    if (navigator.serviceWorker) {
+      const noop = function() { return Promise.resolve(); };
+      navigator.serviceWorker.register = noop;
+      navigator.serviceWorker.getRegistrations = function() { return Promise.resolve([]); };
+      navigator.serviceWorker.getRegistration = function() { return Promise.resolve(undefined); };
+    }
+  } catch (e) {}
+  // Stub Web Workers (can't proxy, but prevent crashes)
+  try {
+    const OrigWorker = window.Worker;
+    window.Worker = function(scriptURL) {
+      try {
+        // Try to load through proxy
+        const resolved = new URL(scriptURL, window.location.href).href;
+        if (!resolved.startsWith(window.location.origin + '/api/proxy')) {
+          scriptURL = PROXY + encodeURIComponent(resolved);
+        }
+      } catch (e) {}
+      return new OrigWorker(scriptURL);
+    };
+    window.Worker.prototype = OrigWorker.prototype;
+  } catch (e) {}
   // Intercept XMLHttpRequest so dynamic XHR goes through the proxy
   try {
     const origOpen = XMLHttpRequest.prototype.open;
@@ -435,6 +459,48 @@ allCookies = allCookies.concat(sc.map(c => {
       } catch (e) {}
       return origOpen.apply(this, [method, url, ...Array.prototype.slice.call(arguments, 2)]);
     };
+  } catch (e) {}
+  // Patch attachShadow so we can observe Shadow DOM trees too
+  try {
+    const origAttachShadow = Element.prototype.attachShadow;
+    if (origAttachShadow) {
+      Element.prototype.attachShadow = function(init) {
+        const shadow = origAttachShadow.call(this, init);
+        try {
+          const shadowObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(m) {
+              m.addedNodes.forEach(function(node) {
+                if (!node || node.nodeType !== 1) return;
+                if (node.tagName === 'STYLE' && node.textContent) {
+                  node.textContent = rewriteCssUrls(node.textContent);
+                }
+                if (node.hasAttribute && node.hasAttribute('style')) {
+                  var st = node.getAttribute('style');
+                  if (st && st.indexOf('url(') !== -1) {
+                    node.setAttribute('style', rewriteCssUrls(st));
+                  }
+                }
+                ['src', 'href'].forEach(function(attr) {
+                  if (node.hasAttribute && node.hasAttribute(attr)) {
+                    const val = node.getAttribute(attr);
+                    if (val && !val.startsWith('data:') && !val.startsWith('blob:') && !val.startsWith('javascript:')) {
+                      try {
+                        const resolved = new URL(val, window.location.href).href;
+                        if (!resolved.startsWith(window.location.origin + '/api/proxy')) {
+                          node.setAttribute(attr, PROXY + encodeURIComponent(resolved));
+                        }
+                      } catch (e) {}
+                    }
+                  }
+                });
+              });
+            });
+          });
+          shadowObserver.observe(shadow, { childList: true, subtree: true });
+        } catch (e) {}
+        return shadow;
+      };
+    }
   } catch (e) {}
   // MutationObserver: rewrite dynamically added scripts, iframes, and links
   try {
