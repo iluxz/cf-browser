@@ -13,11 +13,14 @@ const SHORTCUTS = [
   { icon: '🧮', label: 'Calc', cfb: 'calc' },
   { icon: '📋', label: 'Sites', cfb: 'websites' },
   { icon: '📝', label: 'Updates', cfb: 'updates' },
+  { icon: 'W', label: 'Wikipedia', url: 'https://en.wikipedia.org' },
+  { icon: 'G', label: 'GitHub', url: 'https://github.com' },
+  { icon: 'M', label: 'MDN', url: 'https://developer.mozilla.org' },
 ];
 
 function newTab(url) {
   const id = ++tabCounter;
-  const tab = { id, url: url || null, title: 'New Tab', history: [], histIdx: -1, loading: false, pinned: false, zoom: 1, view: null, frame: null };
+  const tab = { id, url: url || null, title: 'New Tab', history: [], histIdx: -1, loading: false, pinned: false, zoom: 1, view: null, frame: null, group: null, color: null };
   tabs.push(tab);
   activeTab = tab;
   renderTabs();
@@ -63,7 +66,9 @@ function renderTabs() {
   tabs.forEach(tab => {
     const el = document.createElement('div');
     el.className = 'tab' + (tab.pinned ? ' pinned' : '') + (activeTab && activeTab.id === tab.id ? ' active' : '');
+    if (tab.color) el.style.borderLeft = '3px solid ' + tab.color;
     el.onclick = () => switchTab(tab.id);
+    el.ondblclick = (e) => { e.stopPropagation(); cycleTabColor(tab); };
     el.innerHTML = `<span class="pin" onclick="togglePin(${tab.id}, event)" title="Pin">P</span><span style="overflow:hidden;text-overflow:ellipsis">${tab.title}</span><span class="close" onclick="closeTab(${tab.id}, event)">×</span>`;
     bar.insertBefore(el, bar.lastChild);
   });

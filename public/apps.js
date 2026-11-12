@@ -1776,6 +1776,47 @@ function cfbFilterHistory() {
   });
 }
 
+function setTabColor(tab, color) {
+  tab.color = color;
+  renderTabs();
+}
+
+function cycleTabColor(tab) {
+  const colors = [null, '#7c5cff', '#56d18a', '#f59e0b', '#e2685f', '#38bdf8', '#f472b6'];
+  const idx = colors.indexOf(tab.color);
+  tab.color = colors[(idx + 1) % colors.length];
+  renderTabs();
+}
+
+function screenshotPage() {
+  const frame = activeTab && activeTab.frame;
+  if (!frame) { setStatusText('No page loaded'); return; }
+  try {
+    const doc = frame.contentDocument;
+    if (!doc || !doc.body) { setStatusText('Cannot capture (cross-origin)'); return; }
+    const canvas = document.createElement('canvas');
+    const w = doc.documentElement.scrollWidth || window.innerWidth;
+    const h = doc.documentElement.scrollHeight || window.innerHeight;
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#000';
+    ctx.font = '12px sans-serif';
+    const text = doc.body.innerText || '';
+    const lines = text.split('\n').slice(0, 200);
+    let y = 20;
+    lines.forEach(l => { ctx.fillText(l.slice(0, 120), 10, y); y += 16; });
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'screenshot-' + Date.now() + '.png';
+    a.click();
+    setStatusText('Screenshot saved');
+  } catch (e) {
+    setStatusText('Screenshot failed: ' + e.message);
+  }
+}
+
 function navigateTo(url) {
   if (!activeTab) newTab(url);
   else loadUrl(activeTab, url);

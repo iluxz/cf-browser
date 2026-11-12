@@ -202,6 +202,7 @@ document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'd') { e.preventDefault(); toggleBookmark(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') { e.preventDefault(); /* cycle tabs */ const tabs = allTabs(); if (tabs.length > 1) { const idx = tabs.indexOf(activeTab); const next = e.shiftKey ? (idx - 1 + tabs.length) % tabs.length : (idx + 1) % tabs.length; activateTab(tabs[next].id); } }
   if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') { e.preventDefault(); screenshotPage(); }
 });
 
 // Patch renderTabs to include pin
