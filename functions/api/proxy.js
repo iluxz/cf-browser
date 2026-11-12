@@ -382,6 +382,26 @@ allCookies = allCookies.concat(sc.map(c => {
       return origFetch.call(this, input, init);
     };
   } catch (e) {}
+  // Rewrite url() in CSS (inline styles and <style> tags)
+  function rewriteCssUrls(cssText) {
+    if (!cssText) return cssText;
+    return cssText.replace(/url\\(\\s*['\"]?([^'\")]+)['\"]?\\s*\\)/gi, function(m, u) {
+      if (u.startsWith('data:') || u.startsWith('blob:') || u.startsWith('#')) return m;
+      try {
+        const resolved = new URL(u, window.location.href).href;
+        if (resolved.startsWith(window.location.origin + '/api/proxy')) return m;
+        return 'url(' + PROXY + encodeURIComponent(resolved) + ')';
+      } catch { return m; }
+    });
+  }
+  // Apply to existing style tags
+  try {
+    document.querySelectorAll('style').forEach(function(el) {
+      if (el.textContent) el.textContent = rewriteCssUrls(el.textContent);
+    });
+  } catch (e) {}
+  // MutationObserver for CSS already handled by the general observer above,
+  // but add specific handling for style elements
   // Intercept XMLHttpRequest so dynamic XHR goes through the proxy
   try {
     const origOpen = XMLHttpRequest.prototype.open;
@@ -403,6 +423,17 @@ allCookies = allCookies.concat(sc.map(c => {
       mutations.forEach(function(m) {
         m.addedNodes.forEach(function(node) {
           if (!node || node.nodeType !== 1) return;
+          // Rewrite CSS urls in dynamically added style elements
+          if (node.tagName === 'STYLE' && node.textContent) {
+            node.textContent = rewriteCssUrls(node.textContent);
+          }
+          // Rewrite url() in inline style attributes
+          if (node.hasAttribute && node.hasAttribute('style')) {
+            var st = node.getAttribute('style');
+            if (st && st.indexOf('url(') !== -1) {
+              node.setAttribute('style', rewriteCssUrls(st));
+            }
+          }
           ['src', 'href'].forEach(function(attr) {
             if (node.hasAttribute && node.hasAttribute(attr)) {
               const val = node.getAttribute(attr);
