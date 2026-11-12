@@ -537,6 +537,32 @@ allCookies = allCookies.concat(sc.map(c => {
     });
     observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
   } catch (e) {}
+  // postMessage origin spoofing: sites check event.origin against their domain.
+  // Since we're on cf-browser.pages.dev, spoof origin to the proxied site's origin.
+  try {
+    const origAddEventListener = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function(type, handler, options) {
+      if (type === 'message' && typeof handler === 'function') {
+        const wrapped = function(e) {
+          try {
+            if (e && e.origin && e.origin !== window.location.origin) {
+              // Create a proxy event with spoofed origin
+              const spoofed = new Proxy(e, {
+                get: function(target, prop) {
+                  if (prop === 'origin') return window.location.origin;
+                  return target[prop];
+                }
+              });
+              return handler.call(this, spoofed);
+            }
+          } catch (err) {}
+          return handler.call(this, e);
+        };
+        return origAddEventListener.call(this, type, wrapped, options);
+      }
+      return origAddEventListener.call(this, type, handler, options);
+    };
+  } catch (e) {}
   window.addEventListener('unhandledrejection', function(e) {
     var r = e && e.reason;
     reportError((r && (r.message || r)) || 'unhandled promise rejection');
