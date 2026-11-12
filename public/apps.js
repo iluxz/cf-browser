@@ -358,6 +358,12 @@ function showCfbPage(tab, page) {
         '<option value="firefox">firefox desktop</option>' +
         '<option value="safari">safari (mac)</option>' +
         '</select></div>' +
+        '<div class="item"><div><div class="title">Sessions</div><div class="url">save/restore tab sessions</div></div>' +
+        '<div style="display:flex;gap:6px;">' +
+        '<button onclick="cfbSaveSession()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;">Save</button>' +
+        '<button onclick="cfbLoadSession()" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;">Load</button>' +
+        '<button onclick="cfbDeleteSession()" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;">Delete</button>' +
+        '</div></div>' +
         '<div style="margin-top:14px;display:flex;gap:8px;">' +
         '<button onclick="cfbSetSettings()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">Save</button>' +
         '<button onclick="if(confirm(\'clear all browser data?\')){localStorage.clear();location.reload();}" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">Reset all data</button>' +
@@ -466,7 +472,11 @@ function showCfbPage(tab, page) {
         '<input id="readerUrl" type="text" placeholder="https://..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:13px;" onkeydown="cfbReaderKey(event)">' +
         '<button onclick="cfbReader()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Read</button>' +
         '</div>' +
-        '<div id="readerContent" style="line-height:1.7;color:var(--text2);font-size:14px;"></div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
+         '<button onclick="cfbReaderFontSize(-2)" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">A-</button>' +
+         '<button onclick="cfbReaderFontSize(2)" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">A+</button>' +
+         '</div>' +
+         '<div id="readerContent" style="line-height:1.7;color:var(--text2);font-size:14px;"></div>' +
         '</div>';
       break;
     case 'calc':
@@ -1815,6 +1825,59 @@ function screenshotPage() {
   } catch (e) {
     setStatusText('Screenshot failed: ' + e.message);
   }
+}
+
+// ===== SESSION MANAGER =====
+function cfbSaveSession() {
+  const name = prompt('session name:');
+  if (!name) return;
+  const session = tabs.map(t => ({ url: t.url, title: t.title, pinned: t.pinned, color: t.color }));
+  try {
+    const sessions = JSON.parse(localStorage.getItem('cfb_sessions') || '{}');
+    sessions[name] = session;
+    localStorage.setItem('cfb_sessions', JSON.stringify(sessions));
+    setStatusText('session "' + name + '" saved');
+  } catch {}
+}
+
+function cfbLoadSession() {
+  let sessions = {};
+  try { sessions = JSON.parse(localStorage.getItem('cfb_sessions') || '{}'); } catch {}
+  const names = Object.keys(sessions);
+  if (names.length === 0) { setStatusText('no saved sessions'); return; }
+  const name = prompt('load session: ' + names.join(', '));
+  if (!name || !sessions[name]) { setStatusText('session not found'); return; }
+  // close all tabs
+  while (tabs.length > 0) closeTab(tabs[0].id);
+  sessions[name].forEach(s => {
+    const t = newTab(s.url);
+    if (s.pinned) t.pinned = true;
+    if (s.color) t.color = s.color;
+    t.title = s.title || t.title;
+  });
+  renderTabs();
+  setStatusText('session "' + name + '" loaded');
+}
+
+function cfbDeleteSession() {
+  let sessions = {};
+  try { sessions = JSON.parse(localStorage.getItem('cfb_sessions') || '{}'); } catch {}
+  const names = Object.keys(sessions);
+  if (names.length === 0) { setStatusText('no saved sessions'); return; }
+  const name = prompt('delete session: ' + names.join(', '));
+  if (name && sessions[name]) {
+    delete sessions[name];
+    localStorage.setItem('cfb_sessions', JSON.stringify(sessions));
+    setStatusText('session "' + name + '" deleted');
+  }
+}
+
+// ===== READER MODE POLISH =====
+function cfbReaderFontSize(delta) {
+  const el = document.getElementById('readerContent');
+  if (!el) return;
+  const current = parseInt(el.style.fontSize) || 14;
+  el.style.fontSize = Math.max(10, Math.min(24, current + delta)) + 'px';
 }
 
 function navigateTo(url) {
