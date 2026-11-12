@@ -402,6 +402,25 @@ allCookies = allCookies.concat(sc.map(c => {
   } catch (e) {}
   // MutationObserver for CSS already handled by the general observer above,
   // but add specific handling for style elements
+  // Intercept WebSocket so connections go through the relay
+  try {
+    const OrigWS = window.WebSocket;
+    window.WebSocket = function(url, protocols) {
+      try {
+        const resolved = new URL(url, window.location.href).href;
+        const relayUrl = 'wss://cf-browser-mp.cnnecare.workers.dev/ws-proxy?url=' + encodeURIComponent(resolved);
+        const ws = protocols ? new OrigWS(relayUrl, protocols) : new OrigWS(relayUrl);
+        return ws;
+      } catch (e) {
+        return protocols ? new OrigWS(url, protocols) : new OrigWS(url);
+      }
+    };
+    window.WebSocket.prototype = OrigWS.prototype;
+    window.WebSocket.CONNECTING = OrigWS.CONNECTING;
+    window.WebSocket.OPEN = OrigWS.OPEN;
+    window.WebSocket.CLOSING = OrigWS.CLOSING;
+    window.WebSocket.CLOSED = OrigWS.CLOSED;
+  } catch (e) {}
   // Intercept XMLHttpRequest so dynamic XHR goes through the proxy
   try {
     const origOpen = XMLHttpRequest.prototype.open;

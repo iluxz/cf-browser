@@ -292,6 +292,60 @@ export default {
       return stub.fetch(new Request('https://internal/info'));
     }
 
-    return json({ error: 'not found' }, 404);
+    // WebSocket proxy: relay between browser and target WS server
+  if (url.pathname === '/ws-proxy') {
+    const targetUrl = url.searchParams.get('url');
+    if (!targetUrl) return json({ error: 'missing target url' }, 400);
+
+    // Upgrade to WebSocket
+    const upgradeHeader = request.headers.get('Upgrade');
+    if (upgradeHeader !== 'websocket') {
+      return json({ error: 'expected websocket upgrade' }, 426);
+    }
+
+    const [client, server] = Object.values(new WebSocketPair());
+    server.accept();
+
+    // Connect to target
+    let targetWs = null;
+    try {
+      const targetResp = await fetch(targetUrl, {
+        headers: { 'Upgrade': 'websocket' },
+      });
+      targetWs = targetResp.webSocket;
+      if (!targetWs) {
+        server.close(1011, 'failed to connect to target');
+        return new Response(null, { status: 101, webSocket: client });
+      }
+      targetWs.accept();
+    } catch (e) {
+      server.close(1011, 'target connection failed: ' + String(e).slice(0, 100));
+      return new Response(null, { status: 101, webSocket: client });
+    }
+
+    // Relay messages: client <-> target
+    server.addEventListener('message', function(e) {
+      try { if (targetWs.readyState === 1) targetWs.send(e.data); } catch {}
+    });
+    targetWs.addEventListener('message', function(e) {
+      try { if (server.readyState === 1) server.send(e.data); } catch {}
+    });
+    server.addEventListener('close', function(e) {
+      try { targetWs.close(e.code, e.reason); } catch {}
+    });
+    targetWs.addEventListener('close', function(e) {
+      try { server.close(e.code, e.reason); } catch {}
+    });
+    server.addEventListener('error', function() {
+      try { targetWs.close(1011, 'client error'); } catch {}
+    });
+    targetWs.addEventListener('error', function() {
+      try { server.close(1011, 'target error'); } catch {}
+    });
+
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  return json({ error: 'not found' }, 404);
   },
 };
