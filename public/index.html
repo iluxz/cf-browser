@@ -1030,13 +1030,15 @@ function showCfbPage(tab, page) {
       html += '</div>';
       break;
     case 'history':
-      html = '<div class="cfb-page"><h1>History</h1>';
+      html = '<div class="cfb-page"><h1>History</h1>' +
+        '<input id="histSearch" type="text" placeholder="search history..." style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:13px;margin-bottom:12px;" oninput="cfbFilterHistory()">';
       const hist = tab.history || [];
+      html += '<div id="histList">';
       if (hist.length === 0) html += '<div class="empty">No history yet.</div>';
       else hist.slice().reverse().forEach(url => {
-        html += '<div class="item"><div class="url">' + escapeHtml(url) + '</div><button onclick="loadUrl(activeTab, \'' + url.replace(/'/g, "\\'") + '\')">Open</button></div>';
+        html += '<div class="item hist-item"><div class="url">' + escapeHtml(url) + '</div><button onclick="loadUrl(activeTab, \'' + url.replace(/'/g, "\\'") + '\')">Open</button></div>';
       });
-      html += '</div>';
+      html += '</div></div>';
       break;
     case 'wordle':
       html = wdlPage();
@@ -1047,6 +1049,8 @@ function showCfbPage(tab, page) {
         '<div class="item"><div><div class="title">Wordle</div><div class="url">guess the 5-letter word in 6 tries</div></div><button onclick="openCfb(\'wordle\')">Play</button></div>' +
         '<div class="item"><div><div class="title">Tic-Tac-Toe</div><div class="url">classic 3x3, play vs a friend or the cpu</div></div><button onclick="openCfb(\'tictactoe\')">Play</button></div>' +
         '<div class="item"><div><div class="title">Snake</div><div class="url">eat food grow longer dont hit walls</div></div><button onclick="openCfb(\'snake\')">Play</button></div>' +
+        '<div class="item"><div><div class="title">2048</div><div class="url">slide tiles to reach 2048</div></div><button onclick="openCfb(\'g2048\')">Play</button></div>' +
+        '<div class="item"><div><div class="title">Minesweeper</div><div class="url">find all mines without exploding</div></div><button onclick="openCfb(\'mines\')">Play</button></div>' +
         '</div>';
       break;
     case 'tictactoe':
@@ -1054,6 +1058,12 @@ function showCfbPage(tab, page) {
       break;
     case 'snake':
       html = snakePage();
+      break;
+    case 'g2048':
+      html = g2048Page();
+      break;
+    case 'mines':
+      html = minesPage();
       break;
     case 'search':
       html = '<div class="cfb-page"><h1>Search</h1>' +
@@ -1428,6 +1438,219 @@ function snakeDraw() {
     ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('GAME OVER', c.width/2, c.height/2);
+  }
+}
+
+// ===== 2048 =====
+let g2048Board = null, g2048Score = 0, g2048Over = false;
+function g2048Page() {
+  return '<div class="cfb-page"><h1>2048</h1>' +
+    '<div class="wd-sub" style="margin-bottom:10px;">arrow keys to slide. combine tiles to reach 2048.</div>' +
+    '<div id="g2048Score" style="text-align:center;font-size:14px;color:#9a9ab0;margin-bottom:8px;">score: 0</div>' +
+    '<div id="g2048Board" style="display:grid;grid-template-columns:repeat(4,70px);gap:6px;margin:0 auto 12px;width:306px;"></div>' +
+    '<div style="text-align:center;margin-top:10px;"><button onclick="g2048Start()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">new game</button></div>' +
+    '</div>';
+}
+function g2048Start() {
+  g2048Board = Array(16).fill(0);
+  g2048Score = 0; g2048Over = false;
+  g2048AddTile(); g2048AddTile();
+  g2048Render();
+  document.onkeydown = g2048Key;
+}
+function g2048AddTile() {
+  const empty = g2048Board.map((v,i) => v === 0 ? i : -1).filter(i => i >= 0);
+  if (!empty.length) return;
+  const idx = empty[Math.floor(Math.random() * empty.length)];
+  g2048Board[idx] = Math.random() < 0.9 ? 2 : 4;
+}
+function g2048Render() {
+  const el = document.getElementById('g2048Board');
+  if (!el) return;
+  el.innerHTML = '';
+  g2048Board.forEach(v => {
+    const cell = document.createElement('div');
+    cell.style.cssText = 'width:70px;height:70px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;border-radius:8px;background:' + (v ? '#1e1e3a' : '#12121c') + ';color:#fff;';
+    cell.textContent = v || '';
+    if (v === 2) cell.style.color = '#aaa';
+    if (v === 4) cell.style.color = '#ddd';
+    if (v >= 8) cell.style.color = '#7c5cff';
+    if (v >= 128) cell.style.color = '#56d18a';
+    if (v >= 512) cell.style.color = '#f59e0b';
+    if (v >= 2048) cell.style.color = '#e2685f';
+    el.appendChild(cell);
+  });
+  const sc = document.getElementById('g2048Score');
+  if (sc) sc.textContent = 'score: ' + g2048Score + (g2048Over ? ' (game over)' : '');
+}
+function g2048Slide(row) {
+  const arr = row.filter(x => x);
+  const merged = [];
+  let i = 0;
+  while (i < arr.length) {
+    if (i + 1 < arr.length && arr[i] === arr[i+1]) {
+      merged.push(arr[i] * 2);
+      g2048Score += arr[i] * 2;
+      i += 2;
+    } else {
+      merged.push(arr[i]);
+      i++;
+    }
+  }
+  while (merged.length < 4) merged.push(0);
+  return merged;
+}
+function g2048Move(dir) {
+  if (g2048Over) return;
+  const b = g2048Board.slice();
+  let moved = false;
+  if (dir === 'left') {
+    for (let r = 0; r < 4; r++) {
+      const row = [b[r*4], b[r*4+1], b[r*4+2], b[r*4+3]];
+      const slid = g2048Slide(row);
+      for (let c = 0; c < 4; c++) { if (b[r*4+c] !== slid[c]) moved = true; b[r*4+c] = slid[c]; }
+    }
+  } else if (dir === 'right') {
+    for (let r = 0; r < 4; r++) {
+      const row = [b[r*4+3], b[r*4+2], b[r*4+1], b[r*4]];
+      const slid = g2048Slide(row);
+      for (let c = 0; c < 4; c++) { if (b[r*4+3-c] !== slid[c]) moved = true; b[r*4+3-c] = slid[c]; }
+    }
+  } else if (dir === 'up') {
+    for (let c = 0; c < 4; c++) {
+      const col = [b[c], b[c+4], b[c+8], b[c+12]];
+      const slid = g2048Slide(col);
+      for (let r = 0; r < 4; r++) { if (b[r*4+c] !== slid[r]) moved = true; b[r*4+c] = slid[r]; }
+    }
+  } else if (dir === 'down') {
+    for (let c = 0; c < 4; c++) {
+      const col = [b[c+12], b[c+8], b[c+4], b[c]];
+      const slid = g2048Slide(col);
+      for (let r = 0; r < 4; r++) { if (b[(3-r)*4+c] !== slid[r]) moved = true; b[(3-r)*4+c] = slid[r]; }
+    }
+  }
+  if (moved) {
+    g2048Board = b;
+    g2048AddTile();
+    // check game over
+    if (!g2048Board.includes(0)) {
+      let canMove = false;
+      for (let i = 0; i < 16; i++) {
+        const r = Math.floor(i/4), c = i%4;
+        if (c < 3 && g2048Board[i] === g2048Board[i+1]) canMove = true;
+        if (r < 3 && g2048Board[i] === g2048Board[i+4]) canMove = true;
+      }
+      if (!canMove) g2048Over = true;
+    }
+    g2048Render();
+  }
+}
+function g2048Key(e) {
+  if (!g2048Board) return;
+  const k = e.key.toLowerCase();
+  if (k === 'arrowleft' || k === 'a') g2048Move('left');
+  else if (k === 'arrowright' || k === 'd') g2048Move('right');
+  else if (k === 'arrowup' || k === 'w') g2048Move('up');
+  else if (k === 'arrowdown' || k === 's') g2048Move('down');
+  e.preventDefault();
+}
+
+// ===== MINESWEEPER =====
+let minesState = null;
+function minesPage() {
+  return '<div class="cfb-page"><h1>Minesweeper</h1>' +
+    '<div class="wd-sub" style="margin-bottom:10px;">left click to reveal, right click to flag. find all mines.</div>' +
+    '<div id="minesInfo" style="text-align:center;font-size:14px;color:#9a9ab0;margin-bottom:8px;">mines: 10 | flags: 0</div>' +
+    '<div id="minesBoard" style="display:grid;grid-template-columns:repeat(9,32px);gap:2px;margin:0 auto 12px;width:306px;"></div>' +
+    '<div style="text-align:center;margin-top:10px;display:flex;gap:8px;justify-content:center;">' +
+    '<button onclick="minesStart(9,9,10)" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">easy (9x9)</button>' +
+    '<button onclick="minesStart(12,12,20)" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">medium (12x12)</button>' +
+    '<button onclick="minesStart(16,16,40)" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">hard (16x16)</button>' +
+    '</div>' +
+    '</div>';
+}
+function minesStart(rows, cols, mines) {
+  minesState = { rows, cols, mines, board: [], revealed: [], flagged: [], over: false, won: false, firstClick: true };
+  for (let i = 0; i < rows * cols; i++) { minesState.board.push(0); minesState.revealed.push(false); minesState.flagged.push(false); }
+  minesRender();
+}
+function minesPlaceMines(safeIdx) {
+  const s = minesState;
+  const total = s.rows * s.cols;
+  let placed = 0;
+  while (placed < s.mines) {
+    const idx = Math.floor(Math.random() * total);
+    if (idx === safeIdx || s.board[idx] === -1) continue;
+    s.board[idx] = -1;
+    placed++;
+  }
+  // calculate numbers
+  for (let i = 0; i < total; i++) {
+    if (s.board[i] === -1) continue;
+    const r = Math.floor(i / s.cols), c = i % s.cols;
+    let count = 0;
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nr >= s.rows || nc < 0 || nc >= s.cols) continue;
+      if (s.board[nr * s.cols + nc] === -1) count++;
+    }
+    s.board[i] = count;
+  }
+}
+function minesReveal(idx) {
+  const s = minesState;
+  if (s.over || s.revealed[idx] || s.flagged[idx]) return;
+  if (s.firstClick) { s.firstClick = false; minesPlaceMines(idx); }
+  s.revealed[idx] = true;
+  if (s.board[idx] === -1) { s.over = true; minesRender(); return; }
+  if (s.board[idx] === 0) {
+    const r = Math.floor(idx / s.cols), c = idx % s.cols;
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nr >= s.rows || nc < 0 || nc >= s.cols) continue;
+      minesReveal(nr * s.cols + nc);
+    }
+  }
+  // check win
+  const unrevealed = s.revealed.filter((v, i) => !v && s.board[i] !== -1).length;
+  if (unrevealed === 0) { s.won = true; s.over = true; }
+  minesRender();
+}
+function minesToggleFlag(idx) {
+  const s = minesState;
+  if (s.over || s.revealed[idx]) return;
+  s.flagged[idx] = !s.flagged[idx];
+  minesRender();
+}
+function minesRender() {
+  const s = minesState;
+  const el = document.getElementById('minesBoard');
+  if (!el || !s) return;
+  el.style.gridTemplateColumns = 'repeat(' + s.cols + ',32px)';
+  el.style.width = (s.cols * 34) + 'px';
+  el.innerHTML = '';
+  for (let i = 0; i < s.rows * s.cols; i++) {
+    const cell = document.createElement('div');
+    cell.style.cssText = 'width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border-radius:4px;background:#12121c;border:1px solid #2e2e48;cursor:pointer;user-select:none;';
+    if (s.revealed[i]) {
+      cell.style.background = '#1a1a2e';
+      if (s.board[i] === -1) { cell.textContent = '💣'; cell.style.background = '#3a1a1a'; }
+      else if (s.board[i] > 0) { cell.textContent = s.board[i]; const colors = ['#7c5cff','#56d18a','#f59e0b','#e2685f','#a78bfa','#38bdf8','#f472b6','#fb923c']; cell.style.color = colors[s.board[i]-1] || '#fff'; }
+    } else if (s.flagged[i]) {
+      cell.textContent = '🚩';
+    }
+    if (s.over && s.board[i] === -1 && !s.revealed[i]) { cell.textContent = '💣'; cell.style.opacity = '0.5'; }
+    if (s.won && s.board[i] === -1) { cell.textContent = '🚩'; }
+    cell.oncontextmenu = (e) => { e.preventDefault(); minesToggleFlag(i); };
+    cell.onclick = () => minesReveal(i);
+    el.appendChild(cell);
+  }
+  const info = document.getElementById('minesInfo');
+  if (info) {
+    const flags = s.flagged.filter(Boolean).length;
+    if (s.won) info.textContent = 'you win! all mines found.';
+    else if (s.over) info.textContent = 'boom! game over.';
+    else info.textContent = 'mines: ' + s.mines + ' | flags: ' + flags;
   }
 }
 
@@ -2179,6 +2402,25 @@ document.addEventListener('change', (e) => {
   if (e.target && e.target.id === 'wdMode') wdlSetMode(e.target.value);
 });
 
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
+function cfbFilterHistory() {
+  const input = document.getElementById('histSearch');
+  const items = document.querySelectorAll('.hist-item');
+  if (!input) return;
+  const q = input.value.toLowerCase();
+  items.forEach(item => {
+    const url = item.textContent.toLowerCase();
+    item.style.display = url.includes(q) ? '' : 'none';
+  });
+}
 
 function navigateTo(url) {
   if (!activeTab) newTab(url);
@@ -3326,6 +3568,14 @@ function findPrev() {
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); toggleFindBar(); }
   if (e.key === 'Escape' && findBar) closeFindBar();
+  // keyboard shortcuts
+  if ((e.ctrlKey || e.metaKey) && e.key === 't') { e.preventDefault(); newTab(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'w') { e.preventDefault(); if (activeTab) closeTab(activeTab.id); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'l') { e.preventDefault(); const ab = document.getElementById('addrBar'); if (ab) { ab.focus(); ab.select(); } }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'r') { e.preventDefault(); if (activeTab) loadUrl(activeTab, activeTab.url); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd') { e.preventDefault(); toggleBookmark(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') { e.preventDefault(); /* cycle tabs */ const tabs = allTabs(); if (tabs.length > 1) { const idx = tabs.indexOf(activeTab); const next = e.shiftKey ? (idx - 1 + tabs.length) % tabs.length : (idx + 1) % tabs.length; activateTab(tabs[next].id); } }
+  if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); }
 });
 
 // Patch renderTabs to include pin
