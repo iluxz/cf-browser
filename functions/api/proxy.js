@@ -362,6 +362,65 @@ allCookies = allCookies.concat(sc.map(c => {
   window.addEventListener('error', function(e) {
     if (e && e.message) reportError(e.message);
   });
+  // Intercept fetch() so dynamic JS requests go through the proxy
+  try {
+    const origFetch = window.fetch;
+    window.fetch = function(input, init) {
+      try {
+        let url = (typeof input === 'string') ? input : (input && input.url);
+        if (url && !url.startsWith('data:') && !url.startsWith('blob:')) {
+          const resolved = new URL(url, window.location.href).href;
+          if (!resolved.startsWith(window.location.origin + '/api/proxy')) {
+            url = PROXY + encodeURIComponent(resolved);
+            if (typeof input === 'string') input = url;
+            else if (input && input.url) {
+              try { input = new Request(url, input); } catch {}
+            }
+          }
+        }
+      } catch (e) {}
+      return origFetch.call(this, input, init);
+    };
+  } catch (e) {}
+  // Intercept XMLHttpRequest so dynamic XHR goes through the proxy
+  try {
+    const origOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url) {
+      try {
+        if (url && !url.startsWith('data:') && !url.startsWith('blob:')) {
+          const resolved = new URL(url, window.location.href).href;
+          if (!resolved.startsWith(window.location.origin + '/api/proxy')) {
+            url = PROXY + encodeURIComponent(resolved);
+          }
+        }
+      } catch (e) {}
+      return origOpen.apply(this, [method, url, ...Array.prototype.slice.call(arguments, 2)]);
+    };
+  } catch (e) {}
+  // MutationObserver: rewrite dynamically added scripts, iframes, and links
+  try {
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        m.addedNodes.forEach(function(node) {
+          if (!node || node.nodeType !== 1) return;
+          ['src', 'href'].forEach(function(attr) {
+            if (node.hasAttribute && node.hasAttribute(attr)) {
+              const val = node.getAttribute(attr);
+              if (val && !val.startsWith('data:') && !val.startsWith('blob:') && !val.startsWith('javascript:')) {
+                try {
+                  const resolved = new URL(val, window.location.href).href;
+                  if (!resolved.startsWith(window.location.origin + '/api/proxy')) {
+                    node.setAttribute(attr, PROXY + encodeURIComponent(resolved));
+                  }
+                } catch (e) {}
+              }
+            }
+          });
+        });
+      });
+    });
+    observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
+  } catch (e) {}
   window.addEventListener('unhandledrejection', function(e) {
     var r = e && e.reason;
     reportError((r && (r.message || r)) || 'unhandled promise rejection');
