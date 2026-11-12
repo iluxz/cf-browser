@@ -16,11 +16,18 @@ const SHORTCUTS = [
   { icon: 'W', label: 'Wikipedia', url: 'https://en.wikipedia.org' },
   { icon: 'G', label: 'GitHub', url: 'https://github.com' },
   { icon: 'M', label: 'MDN', url: 'https://developer.mozilla.org' },
+  { icon: 'S', label: 'Stack Overflow', url: 'https://stackoverflow.com' },
+  { icon: 'H', label: 'Hacker News', url: 'https://news.ycombinator.com' },
+  { icon: 'R', label: 'Reddit', url: 'https://www.reddit.com' },
+  { icon: 'Y', label: 'YouTube', url: 'https://www.youtube.com' },
+  { icon: 'A', label: 'Amazon', url: 'https://www.amazon.com' },
+  { icon: 'E', label: 'eBay', url: 'https://www.ebay.com' },
+  { icon: 'T', label: 'Twitter', url: 'https://twitter.com' },
 ];
 
 function newTab(url) {
   const id = ++tabCounter;
-  const tab = { id, url: url || null, title: 'New Tab', history: [], histIdx: -1, loading: false, pinned: false, zoom: 1, view: null, frame: null, group: null, color: null };
+  const tab = { id, url: url || null, title: 'New Tab', history: [], histIdx: -1, loading: false, pinned: false, zoom: 1, view: null, frame: null, group: null, color: null, downloaded: false };
   tabs.push(tab);
   activeTab = tab;
   renderTabs();
