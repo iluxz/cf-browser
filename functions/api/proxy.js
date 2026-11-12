@@ -366,6 +366,21 @@ allCookies = allCookies.concat(sc.map(c => {
     var r = e && e.reason;
     reportError((r && (r.message || r)) || 'unhandled promise rejection');
   });
+  // Apply user extensions (CSS + JS from localStorage)
+  try {
+    var extCss = localStorage.getItem('cfb_ext_css');
+    if (extCss) {
+      var styleEl = document.createElement('style');
+      styleEl.textContent = extCss;
+      (document.head || document.documentElement).appendChild(styleEl);
+    }
+    var extJs = localStorage.getItem('cfb_ext_js');
+    if (extJs) {
+      var scriptEl = document.createElement('script');
+      scriptEl.textContent = extJs;
+      (document.head || document.documentElement).appendChild(scriptEl);
+    }
+  } catch (e) {}
 })();
 </script>`;
 

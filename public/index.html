@@ -794,7 +794,14 @@ function loadIntoFrame(tab, url) {
 
   const frame = document.createElement('iframe');
   frame.className = 'webview';
-  frame.src = PROXY + encodeURIComponent(url);
+  // check if domain is in always-open-direct list
+  let direct = false;
+  try {
+    const domains = (localStorage.getItem('cfb_direct_domains') || '').split(/\n/).map(d => d.trim().toLowerCase()).filter(Boolean);
+    const host = new URL(url).hostname.toLowerCase();
+    direct = domains.some(d => host === d || host.endsWith('.' + d));
+  } catch {}
+  frame.src = direct ? url : (PROXY + encodeURIComponent(url));
   tab.frame = frame;
 
   let settled = false;
@@ -994,6 +1001,8 @@ function showCfbPage(tab, page) {
         '<option value="forest">forest (green)</option>' +
         '<option value="sunset">sunset (orange)</option>' +
         '</select></div>' +
+        '<div class="item"><div><div class="title">Always open direct</div><div class="url">domains to skip the proxy (one per line)</div></div>' +
+        '<textarea id="setDirect" style="width:230px;height:60px;padding:6px 8px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;resize:vertical;font-family:inherit;" placeholder="reddit.com">' + (localStorage.getItem('cfb_direct_domains') || '') + '</textarea></div>' +
         '<div style="margin-top:14px;display:flex;gap:8px;">' +
         '<button onclick="cfbSetSettings()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">Save</button>' +
         '<button onclick="if(confirm(\'clear all browser data?\')){localStorage.clear();location.reload();}" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">Reset all data</button>' +
@@ -1036,10 +1045,14 @@ function showCfbPage(tab, page) {
         '<p style="color:#888;font-size:12px;margin-bottom:14px;">little browser games that work offline, no proxy needed.</p>' +
         '<div class="item"><div><div class="title">Wordle</div><div class="url">guess the 5-letter word in 6 tries</div></div><button onclick="openCfb(\'wordle\')">Play</button></div>' +
         '<div class="item"><div><div class="title">Tic-Tac-Toe</div><div class="url">classic 3x3, play vs a friend or the cpu</div></div><button onclick="openCfb(\'tictactoe\')">Play</button></div>' +
+        '<div class="item"><div><div class="title">Snake</div><div class="url">eat food grow longer dont hit walls</div></div><button onclick="openCfb(\'snake\')">Play</button></div>' +
         '</div>';
       break;
     case 'tictactoe':
       html = tttPage();
+      break;
+    case 'snake':
+      html = snakePage();
       break;
     case 'search':
       html = '<div class="cfb-page"><h1>Search</h1>' +
@@ -1317,6 +1330,102 @@ function tttCpuMove() {
 
 function tttMode(m) { tttState.mode = m; tttReset(); }
 function tttReset() { tttState = { board: Array(9).fill(''), turn: 'X', mode: tttState.mode, over: false, winner: null }; tttRender(); }
+
+// ===== SNAKE =====
+let snakeState = null, snakeTimer = null;
+function snakePage() {
+  return '<div class="cfb-page"><h1>Snake</h1>' +
+    '<div class="wd-sub" style="margin-bottom:10px;">arrow keys or wasd to move. eat food, grow, don\'t hit walls.</div>' +
+    '<div id="snakeScore" style="text-align:center;font-size:14px;color:#9a9ab0;margin-bottom:8px;">score: 0</div>' +
+    '<canvas id="snakeCanvas" width="300" height="300" style="display:block;margin:0 auto;border:2px solid #2e2e48;border-radius:8px;background:#0a0a14;"></canvas>' +
+    '<div style="text-align:center;margin-top:10px;"><button onclick="snakeStart()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">start / restart</button></div>' +
+    '</div>';
+}
+function snakeStart() {
+  const c = document.getElementById('snakeCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const grid = 15, cell = c.width / grid;
+  snakeState = { snake: [{x:7,y:7}], dir: {x:1,y:0}, food: {x:5,y:5}, score: 0, over: false, grid, cell };
+  snakeSpawnFood();
+  if (snakeTimer) clearInterval(snakeTimer);
+  snakeTimer = setInterval(snakeTick, 120);
+  document.onkeydown = snakeKey;
+  snakeDraw();
+}
+function snakeSpawnFood() {
+  const s = snakeState;
+  if (!s) return;
+  let ok = false;
+  while (!ok) {
+    s.food = { x: Math.floor(Math.random()*s.grid), y: Math.floor(Math.random()*s.grid) };
+    ok = !s.snake.some(p => p.x === s.food.x && p.y === s.food.y);
+  }
+}
+function snakeKey(e) {
+  const s = snakeState;
+  if (!s || s.over) return;
+  const k = e.key.toLowerCase();
+  if ((k === 'arrowup' || k === 'w') && s.dir.y !== 1) s.dir = {x:0,y:-1};
+  else if ((k === 'arrowdown' || k === 's') && s.dir.y !== -1) s.dir = {x:0,y:1};
+  else if ((k === 'arrowleft' || k === 'a') && s.dir.x !== 1) s.dir = {x:-1,y:0};
+  else if ((k === 'arrowright' || k === 'd') && s.dir.x !== -1) s.dir = {x:1,y:0};
+  e.preventDefault();
+}
+function snakeTick() {
+  const s = snakeState;
+  if (!s || s.over) return;
+  const head = { x: s.snake[0].x + s.dir.x, y: s.snake[0].y + s.dir.y };
+  if (head.x < 0 || head.x >= s.grid || head.y < 0 || head.y >= s.grid || s.snake.some(p => p.x === head.x && p.y === head.y)) {
+    s.over = true;
+    clearInterval(snakeTimer);
+    snakeDraw();
+    const sc = document.getElementById('snakeScore');
+    if (sc) sc.textContent = 'game over! score: ' + s.score;
+    return;
+  }
+  s.snake.unshift(head);
+  if (head.x === s.food.x && head.y === s.food.y) {
+    s.score++;
+    const sc = document.getElementById('snakeScore');
+    if (sc) sc.textContent = 'score: ' + s.score;
+    snakeSpawnFood();
+  } else {
+    s.snake.pop();
+  }
+  snakeDraw();
+}
+function snakeDraw() {
+  const s = snakeState;
+  const c = document.getElementById('snakeCanvas');
+  if (!c || !s) return;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(0, 0, c.width, c.height);
+  // grid
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= s.grid; i++) {
+    ctx.beginPath(); ctx.moveTo(i*s.cell, 0); ctx.lineTo(i*s.cell, c.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i*s.cell); ctx.lineTo(c.width, i*s.cell); ctx.stroke();
+  }
+  // food
+  ctx.fillStyle = '#e2685f';
+  ctx.fillRect(s.food.x*s.cell+2, s.food.y*s.cell+2, s.cell-4, s.cell-4);
+  // snake
+  s.snake.forEach((p, i) => {
+    ctx.fillStyle = i === 0 ? '#7c5cff' : '#56d18a';
+    ctx.fillRect(p.x*s.cell+1, p.y*s.cell+1, s.cell-2, s.cell-2);
+  });
+  if (s.over) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', c.width/2, c.height/2);
+  }
+}
 
 // ===== SEARCH =====
 async function cfbSearchKey(e) { if (e.key === 'Enter') cfbSearch(); }
@@ -3080,8 +3189,10 @@ function cfbClearCookies() {
 function cfbSetSettings() {
   const homeEl = document.getElementById('setHome');
   const themeEl = document.getElementById('setTheme');
+  const directEl = document.getElementById('setDirect');
   if (homeEl) { try { localStorage.setItem('cfb_homepage', homeEl.value.trim() || 'https://www.google.com'); } catch {} }
   if (themeEl) { try { localStorage.setItem('cfb_theme', themeEl.value); } catch {} }
+  if (directEl) { try { localStorage.setItem('cfb_direct_domains', directEl.value); } catch {} }
   cfbApplyTheme();
   const btn = document.querySelector('[onclick="cfbSetSettings()"]');
   if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save'; }, 1200); }
