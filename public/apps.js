@@ -416,6 +416,15 @@ function showCfbPage(tab, page) {
     case 'tictactoe':
       html = tttPage();
       break;
+    case 'passwords':
+      html = cfbPasswordsPage();
+      break;
+    case 'rss':
+      html = cfbRssPage();
+      break;
+    case 'split':
+      html = cfbSplitPage();
+      break;
     case 'snake':
       html = snakePage();
       break;
@@ -1878,6 +1887,150 @@ function cfbReaderFontSize(delta) {
   if (!el) return;
   const current = parseInt(el.style.fontSize) || 14;
   el.style.fontSize = Math.max(10, Math.min(24, current + delta)) + 'px';
+}
+
+// ===== PASSWORD MANAGER =====
+function cfbPasswordsPage() {
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem('cfb_passwords') || '[]'); } catch {}
+  let html = '<div class="cfb-page"><h1>Password Manager</h1>' +
+    '<p style="color:#888;font-size:12px;margin-bottom:14px;">stored locally in your browser (not encrypted, for convenience only).</p>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">' +
+    '<input id="pwSite" placeholder="site (e.g. github.com)" style="flex:1;min-width:120px;padding:6px 8px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;">' +
+    '<input id="pwUser" placeholder="username" style="flex:1;min-width:120px;padding:6px 8px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;">' +
+    '<input id="pwPass" placeholder="password" type="password" style="flex:1;min-width:120px;padding:6px 8px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:12px;">' +
+    '<button onclick="cfbSavePw()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;">Save</button>' +
+    '</div>' +
+    '<div id="pwList">';
+  if (entries.length === 0) html += '<div class="empty">No passwords saved.</div>';
+  else entries.forEach((e, i) => {
+    html += '<div class="item"><div><div class="title">' + escapeHtml(e.site) + '</div><div class="url">' + escapeHtml(e.user) + '</div></div>' +
+      '<button onclick="cfbShowPw(' + i + ')" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;margin-right:4px;">Show</button>' +
+      '<button onclick="cfbDeletePw(' + i + ')" style="background:transparent;border:1px solid #e2685f;color:#e2685f;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;">Delete</button></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+function cfbSavePw() {
+  const site = document.getElementById('pwSite').value.trim();
+  const user = document.getElementById('pwUser').value.trim();
+  const pass = document.getElementById('pwPass').value;
+  if (!site || !user || !pass) { setStatusText('fill all fields'); return; }
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem('cfb_passwords') || '[]'); } catch {}
+  entries.push({ site, user, pass });
+  localStorage.setItem('cfb_passwords', JSON.stringify(entries));
+  openCfb('passwords');
+  setStatusText('password saved');
+}
+function cfbShowPw(i) {
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem('cfb_passwords') || '[]'); } catch {}
+  if (entries[i]) alert(entries[i].site + '\\n' + entries[i].user + '\\n' + entries[i].pass);
+}
+function cfbDeletePw(i) {
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem('cfb_passwords') || '[]'); } catch {}
+  entries.splice(i, 1);
+  localStorage.setItem('cfb_passwords', JSON.stringify(entries));
+  openCfb('passwords');
+  setStatusText('password deleted');
+}
+
+// ===== RSS FEED READER =====
+function cfbRssPage() {
+  let feeds = [];
+  try { feeds = JSON.parse(localStorage.getItem('cfb_rss_feeds') || '[]'); } catch {}
+  let html = '<div class="cfb-page"><h1>RSS Feed Reader</h1>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+    '<input id="rssUrl" placeholder="feed url (e.g. https://hnrss.org/frontpage)" style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid #3a3a5e;background:#0f0f1a;color:#e0e0e0;font-size:13px;">' +
+    '<button onclick="cfbAddFeed()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Add Feed</button>' +
+    '</div>' +
+    '<div id="rssFeeds">';
+  if (feeds.length === 0) html += '<div class="empty">No feeds added. Try https://hnrss.org/frontpage</div>';
+  else feeds.forEach((f, i) => {
+    html += '<div class="item"><div><div class="title">' + escapeHtml(f) + '</div></div>' +
+      '<button onclick="cfbLoadFeed(' + i + ')" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px;">Load</button>' +
+      '<button onclick="cfbRemoveFeed(' + i + ')" style="background:transparent;border:1px solid #e2685f;color:#e2685f;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Remove</button></div>';
+  });
+  html += '</div><div id="rssArticles" style="margin-top:16px;"></div></div>';
+  return html;
+}
+async function cfbAddFeed() {
+  const url = document.getElementById('rssUrl').value.trim();
+  if (!url) return;
+  let feeds = [];
+  try { feeds = JSON.parse(localStorage.getItem('cfb_rss_feeds') || '[]'); } catch {}
+  if (!feeds.includes(url)) { feeds.push(url); localStorage.setItem('cfb_rss_feeds', JSON.stringify(feeds)); }
+  openCfb('rss');
+  setStatusText('feed added');
+}
+function cfbRemoveFeed(i) {
+  let feeds = [];
+  try { feeds = JSON.parse(localStorage.getItem('cfb_rss_feeds') || '[]'); } catch {}
+  feeds.splice(i, 1);
+  localStorage.setItem('cfb_rss_feeds', JSON.stringify(feeds));
+  openCfb('rss');
+}
+async function cfbLoadFeed(i) {
+  let feeds = [];
+  try { feeds = JSON.parse(localStorage.getItem('cfb_rss_feeds') || '[]'); } catch {}
+  const url = feeds[i];
+  if (!url) return;
+  const el = document.getElementById('rssArticles');
+  if (el) el.innerHTML = '<div style="color:#888;">loading...</div>';
+  try {
+    const proxyUrl = PROXY + encodeURIComponent(url);
+    const r = await fetch(proxyUrl);
+    const text = await r.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'text/xml');
+    const items = doc.querySelectorAll('item');
+    let html = '';
+    items.forEach(item => {
+      const title = item.querySelector('title')?.textContent || 'untitled';
+      const link = item.querySelector('link')?.textContent || '#';
+      const desc = item.querySelector('description')?.textContent || '';
+      const date = item.querySelector('pubDate')?.textContent || '';
+      html += '<div class="item"><div><div class="title">' + escapeHtml(title) + '</div>' +
+        '<div class="url">' + escapeHtml(date) + '</div>' +
+        '<div style="color:#9a9ab0;font-size:12px;margin-top:4px;">' + escapeHtml(desc.replace(/<[^>]*>/g, '').slice(0, 200)) + '</div></div>' +
+        '<button onclick="loadUrl(activeTab, ' + JSON.stringify(link) + ')">Open</button></div>';
+    });
+    if (el) el.innerHTML = html || '<div class="empty">no articles found</div>';
+  } catch (e) {
+    if (el) el.innerHTML = '<div style="color:#e2685f;">error: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+// ===== SPLIT VIEW =====
+function cfbSplitPage() {
+  return '<div class="cfb-page"><h1>Split View</h1>' +
+    '<p style="color:#888;font-size:12px;margin-bottom:14px;">open two tabs side by side.</p>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+    '<button onclick="cfbSplitEnable()" style="background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Enable Split View</button>' +
+    '<button onclick="cfbSplitDisable()" style="background:transparent;border:1px solid #3a3a5e;color:#9a9ab0;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">Disable</button>' +
+    '</div>' +
+    '<p style="color:#666;font-size:11px;">split view shows the active tab and the previous tab side by side. use tab switching to change which tabs are shown.</p>' +
+    '</div>';
+}
+function cfbSplitEnable() {
+  const content = document.getElementById('content');
+  if (!content) return;
+  content.style.display = 'flex';
+  content.style.flexDirection = 'row';
+  const views = content.querySelectorAll('.tabview');
+  views.forEach(v => { v.style.flex = '1'; v.style.width = '50%'; });
+  setStatusText('split view enabled');
+}
+function cfbSplitDisable() {
+  const content = document.getElementById('content');
+  if (!content) return;
+  content.style.display = '';
+  content.style.flexDirection = '';
+  const views = content.querySelectorAll('.tabview');
+  views.forEach(v => { v.style.flex = ''; v.style.width = ''; });
+  setStatusText('split view disabled');
 }
 
 function navigateTo(url) {
