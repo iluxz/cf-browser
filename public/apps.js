@@ -458,7 +458,10 @@ function showCfbPage(tab, page) {
       html = '<div class="cfb-page"><h1>Update Log</h1>' +
         '<p style="color:#888;font-size:12px;margin-bottom:16px;">what changed in cf-browser.</p>' +
         '<div style="border-left:2px solid var(--accent);padding-left:14px;margin-bottom:16px;">' +
-        '<div style="font-weight:600;color:var(--accent);font-size:12px;">v1.2 — ui rework + polish</div>' +
+        '<div style="font-weight:600;color:var(--accent);font-size:12px;">v1.3 — feature complete</div>' +
+        '<div style="color:var(--text3);font-size:12px;margin-top:4px;">file split (engine/apps/multiplayer/init.js), keyboard shortcuts (ctrl+t/w/l/r/d/tab, f11, ctrl+shift+s), 5 games (wordle, tic-tac-toe, snake, 2048, minesweeper), session manager, tab colors, screenshot capture, new tab speed dial, user agent switcher, history search, reader font size, password manager, rss feed reader, split view, favicon. js handling: fetch/xhr interception, mutationobserver, css url() rewriting, websocket proxy, shadow dom, service worker stubs, web worker proxying, postmessage origin spoofing, extension injection. multiplayer: rooms, chat, cursors, shared wordle, webrtc.</div></div>' +
+        '<div style="border-left:2px solid var(--border2);padding-left:14px;margin-bottom:16px;">' +
+        '<div style="font-weight:600;color:var(--text2);font-size:12px;">v1.2 — ui rework + polish</div>' +
         '<div style="color:var(--text2);font-size:12px;margin-top:4px;">modern dark theme with css variables, 5 color themes (dark/light/midnight/forest/sunset), glassmorphism, better tabs, custom scrollbars, smoother transitions. theme picker in settings.</div></div>' +
         '<div style="border-left:2px solid var(--border2);padding-left:14px;margin-bottom:16px;">' +
         '<div style="font-weight:600;color:var(--text2);font-size:12px;">v1.1 — multiplayer presence</div>' +
